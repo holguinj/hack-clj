@@ -2,6 +2,6 @@
   (:require [clojure.test :refer :all]
             [hack-clj.core :refer :all]))
 
-(deftest a-test
-  (testing "FIXME, I fail."
-    (is (= 0 1))))
+(deftest test-a-instruction?
+  (testing "should return true iff string begins with '@'"
+    (is (= true (a-instruction? "@123")))))
