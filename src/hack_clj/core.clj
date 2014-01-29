@@ -4,18 +4,18 @@
 (defn a-instruction? [asm]
   (false? (nil? (re-find #"^\@" asm))))
 
-(defn jump? [^String asm]
-  (.contains ";" asm))
-
-(defn assignment? [^String asm]
-  (.contains "=" asm))
-
 (defn compile-a-instruction [^String asm]
   (-> asm
       (subs 1)
       (Integer/parseInt)
       (Integer/toString 2)
       (pad 16)))
+
+(defn jump? [^String asm]
+  (.contains ";" asm))
+
+(defn assignment? [^String asm]
+  (.contains "=" asm))
 
 (defn lookup-comp [c-comp]
   ({"0" "101010"
