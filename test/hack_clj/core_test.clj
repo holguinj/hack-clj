@@ -8,4 +8,10 @@
 
 (deftest test-compile-a-instruction
   (testing "should always return a 16-digit binary number"
-    (is (= (.length (compile-a-instruction "@123")) 16))))
+    (is (= (.length (compile-a-instruction "@123")) 16)))
+  (testing "@123 should come back as 123 in binary"
+    (is (= 123 (Integer/parseInt (compile-a-instruction "@123") 2)))))
+
+(deftest test-lookup-comp
+  (testing "Output for A+1 should be the same as for M+1"
+    (is (= (lookup-comp "A+1") (lookup-comp "M+1")))))
