@@ -4,6 +4,12 @@
 (defn a-instruction? [asm]
   (false? (nil? (re-find #"^\@" asm))))
 
+(defn jump? [^String asm]
+  (.contains ";" asm))
+
+(defn assignment? [^String asm]
+  (.contains "=" asm))
+
 (defn compile-a-instruction [^String asm]
   (-> asm
       (subs 1)
@@ -11,7 +17,7 @@
       (Integer/toString 2)
       (pad 16)))
 
-(defn lookup [cinst] 
+(defn lookup-comp [c-comp]
   ({"0" "101010"
     "1" "111111"
     "-1" "111010"
@@ -30,12 +36,12 @@
     "A-D" "000111"
     "D&A" "000000"
     "D|A" "010101"
-    "M" (lookup "A")
-    "!M" (lookup "!A")
-    "-M" (lookup "-A")
-    "M+1" (lookup "A+1")
-    "D+M" (lookup "D+A")
-    "D-M" (lookup "D-A")
-    "M-D" (lookup "A-D")
-    "D&M" (lookup "D&A")
-    "D|M" (lookup "D|A")} cinst))
+    "M" "001100"
+    "!M" "001101"
+    "-M" "110011"
+    "M+1" "110111"
+    "D+M" "000010"
+    "D-M" "010011"
+    "M-D" "000111"
+    "D&M" "000000"
+    "D|M" "010101"} c-comp))
