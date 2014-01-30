@@ -4,6 +4,9 @@
 (defn a-instruction? [^String asm]
   (false? (nil? (re-find #"^\@[0-9]++$" asm))))
 
+(defn a-var? [^String asm]
+  (false? (nil? (re-find #"^\@[a-zA-Z]++" asm))))
+
 (defn jump? [^String asm]
   (.contains asm ";"))
 

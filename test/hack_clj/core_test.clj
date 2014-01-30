@@ -18,11 +18,16 @@
     (is (true? (assignment? "D=!M")))
     (is (false? (assignment? "D;!M")))))
 
+(deftest test-a-var?
+  (testing "should match if input starts with '@' followed by at least one letter"
+    (is (true? (a-var? "@ab12")))
+    (is (false? (a-var? "@12ab")))))
+
 (deftest test-compile-a-instruction
   (testing "should return a 16-digit binary number"
     (is (= 16 (.length (compile-a-instruction "@123")))))
   (testing "@123 should come back as 123 in binary"
-    (is (= 123 (Integer/parseInt (compile-a-instruction "@123") 2)))))
+    (is (= 123 (Integer/parseInt (compile-a-instruction "@123") 2))))) 
 
 (deftest test-lookup-comp
   (testing "Output for A+1 should be the same as for M+1"
