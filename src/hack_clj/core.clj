@@ -1,14 +1,14 @@
 (ns hack-clj.core
   (:require [hack-clj.util :refer :all]))
 
-(defn a-instruction? [asm]
-  (false? (nil? (re-find #"^\@" asm))))
+(defn a-instruction? [^String asm]
+  (false? (nil? (re-find #"^\@[0-9]++$" asm))))
 
 (defn jump? [^String asm]
-  (.contains ";" asm))
+  (.contains asm ";"))
 
 (defn assignment? [^String asm]
-  (.contains "=" asm))
+  (.contains asm "="))
 
 (defn compile-a-instruction [^String asm]
   (-> asm

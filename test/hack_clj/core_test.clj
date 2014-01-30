@@ -4,13 +4,23 @@
 
 (deftest test-a-instruction?
   (testing "should return true if string begins with '@'"
-    (is (= true (a-instruction? "@123"))))
+    (is (true? (a-instruction? "@123"))))
   (testing "should return false if non-numbers follow the '@'"
-    (is (= false (a-instruction? "@foo")))))
+    (is (false? (a-instruction? "@foo")))))
+
+(deftest test-jump?
+  (testing "should match iff input contains ';'"
+    (is (true? (jump? "0;JGT")))
+    (is (false? (jump? "D=!M")))))
+
+(deftest test-assignment?
+  (testing "should match iff input contains '='"
+    (is (true? (assignment? "D=!M")))
+    (is (false? (assignment? "D;!M")))))
 
 (deftest test-compile-a-instruction
   (testing "should return a 16-digit binary number"
-    (is (= (.length (compile-a-instruction "@123")) 16)))
+    (is (= 16 (.length (compile-a-instruction "@123")))))
   (testing "@123 should come back as 123 in binary"
     (is (= 123 (Integer/parseInt (compile-a-instruction "@123") 2)))))
 
