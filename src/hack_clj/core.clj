@@ -13,6 +13,9 @@
 (defn assignment? [^String asm]
   (.contains asm "="))
 
+(defn target? [^String asm]
+  (false? (nil? (re-find #"^\(.+\)$" asm))))
+
 (defn compile-a-instruction [^String asm]
   (-> asm
       (subs 1)

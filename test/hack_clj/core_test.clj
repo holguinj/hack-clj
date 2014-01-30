@@ -29,6 +29,15 @@
   (testing "@123 should come back as 123 in binary"
     (is (= 123 (Integer/parseInt (compile-a-instruction "@123") 2))))) 
 
+(deftest test-target?
+  (testing "should match if line looks like (ABC)"
+    (is (true? (target? "(LOOP)")))
+    (is (false? (target? "@(FOO)")))))
+
 (deftest test-lookup-comp
   (testing "Output for A+1 should be the same as for M+1"
-    (is (= (lookup-comp "A+1") (lookup-comp "M+1")))))
+    (is (= (lookup-comp "A+1") (lookup-comp "M+1"))))
+  (testing "Output for D=M should match reference"
+    (is (= "1111110000010000") (lookup-comp "D=M")))
+  (testing "Output for M=0 should match reference"
+    (is (= "1110101010001000") (lookup-comp "M=0"))))
