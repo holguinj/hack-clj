@@ -23,13 +23,13 @@
     (is (true? (a-var? "@ab12")))
     (is (false? (a-var? "@12ab")))))
 
-(deftest test-varify
+(deftest test-varify!
   (testing "should give '@FOO' address 16"
-    (varify "@FOO")
+    (varify! "@FOO")
     (is (= 16 (@var-table "FOO")))))
 
 (deftest test-next-var
-  (testing "since no other variables have been declared, output should be 16"
+  (testing "since one other variable has been declared, output should be 17"
     (is (= 17 (next-var)))))
 
 (deftest test-compile-a-instruction

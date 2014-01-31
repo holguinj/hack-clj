@@ -35,7 +35,7 @@
 (defn target? [^String asm]
   (false? (nil? (re-find #"^\(.+\)$" asm))))
 
-(defn varify [^String asm]
+(defn varify! [^String asm]
   (let [varname (subs asm 1)
         address (next-var)]
   (if-not (@var-table varname)
