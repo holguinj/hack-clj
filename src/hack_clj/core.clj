@@ -36,10 +36,9 @@
   (false? (nil? (re-find #"^\(.+\)$" asm))))
 
 (defn varify! [^String asm]
-  (let [varname (subs asm 1)
+  (let [varname (clojure.string/replace asm #"[\@\(\)]" "")
         address (next-var)]
-  (if-not (@var-table varname)
-    (swap! var-table assoc varname address))))
+    (swap! var-table assoc varname address)))
 
 (defn compile-a-instruction [^String asm]
   (-> asm

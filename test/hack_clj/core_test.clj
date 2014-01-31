@@ -26,11 +26,14 @@
 (deftest test-varify!
   (testing "should give '@FOO' address 16"
     (varify! "@FOO")
-    (is (= 16 (@var-table "FOO")))))
+    (is (= 16 (@var-table "FOO"))))
+  (testing "should give '(LOOP)' address 17"
+    (varify! "(LOOP)")
+    (is (= 17 (@var-table "LOOP")))))
 
 (deftest test-next-var
-  (testing "since one other variable has been declared, output should be 17"
-    (is (= 17 (next-var)))))
+  (testing "since one other variable has been declared, output should be 18"
+    (is (= 18 (next-var)))))
 
 (deftest test-compile-a-instruction
   (testing "should return a 16-digit binary number"
