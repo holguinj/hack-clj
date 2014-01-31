@@ -23,6 +23,15 @@
     (is (true? (a-var? "@ab12")))
     (is (false? (a-var? "@12ab")))))
 
+(deftest test-varify
+  (testing "should give '@FOO' address 16"
+    (varify "@FOO")
+    (is (= 16 (@var-table "FOO")))))
+
+(deftest test-next-var
+  (testing "since no other variables have been declared, output should be 16"
+    (is (= 17 (next-var)))))
+
 (deftest test-compile-a-instruction
   (testing "should return a 16-digit binary number"
     (is (= 16 (.length (compile-a-instruction "@123")))))

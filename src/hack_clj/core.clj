@@ -14,6 +14,12 @@
                       "R15" 15 "SCREEN" 16384 
                       "KBD" 24576}))
 
+(defn next-var []
+  (->> (vals @var-table)
+       (filter #(< % (@var-table "SCREEN")))
+       (reduce max)
+       (inc)))
+
 (defn a-instruction? [^String asm]
   (false? (nil? (re-find #"^\@[0-9]++$" asm))))
 
@@ -28,6 +34,12 @@
 
 (defn target? [^String asm]
   (false? (nil? (re-find #"^\(.+\)$" asm))))
+
+(defn varify [^String asm]
+  (let [varname (subs asm 1)
+        address (next-var)]
+  (if-not (@var-table varname)
+    (swap! var-table assoc varname address))))
 
 (defn compile-a-instruction [^String asm]
   (-> asm
