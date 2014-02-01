@@ -41,15 +41,15 @@
         address (next-var)]
     (swap! var-table assoc varname address)))
 
-(defn get-comp [^String asm]
+(defn get-dest [^String asm]
     (-> (re-find #"^([A-Z]++)=" asm)
         (nth 1)
-        (lookup-comp)))
-
-(defn get-dest [^String asm]
-    (-> (re-find #"=([A-Z]++)[;$]" asm)
-        (nth 1)
         (lookup-dest)))
+
+(defn get-comp [^String asm]
+    (-> (re-find #"=*([A-Z0-9\-\+]++);*" asm)
+        (nth 1)
+        (lookup-comp)))
 
 (defn get-jump [^String asm]
     (-> (re-find #";([A-Z]++)$" asm)
