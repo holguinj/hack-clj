@@ -85,6 +85,11 @@
       (compile-a-instruction asm)
       (compile-c-instruction asm)))
 
+(defn parse-vars [code]
+  (doall 
+    (for [line code] 
+      (if (a-var? line) (varify! line)))))
+
 (defn -main [file & args]
   (let [fout (clojure.string/replace file ".asm" ".hack")
         code (->> (slurp file)
@@ -92,7 +97,7 @@
                    (map cleanup)
                    (filter (complement clojure.string/blank?)))]
     (println "Making initial pass on" file "to scan for variables.")
-    (doall (for [line code] (if (a-var? line) (varify! line))))
+    (parse-vars code)
     (println "Compiling" file "->" fout)
     (spit fout 
       (->> code
