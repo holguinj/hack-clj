@@ -1,5 +1,6 @@
 (ns hack-clj.core-test
   (:require [clojure.test :refer :all]
+            [hack-clj.lookup :refer :all]
             [hack-clj.core :refer :all]))
 
 (deftest test-a-instruction?
@@ -30,10 +31,6 @@
   (testing "should give '(LOOP)' address 17"
     (varify! "(LOOP)")
     (is (= 17 (@var-table "LOOP")))))
-
-(deftest test-next-var
-  (testing "since one other variable has been declared, output should be 18"
-    (is (= 18 (next-var)))))
 
 (deftest test-compile-a-instruction
   (testing "should return a 16-digit binary number"
