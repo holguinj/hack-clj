@@ -41,10 +41,12 @@
   (and (false? (clojure.string/blank? asm))
        (false? (.contains asm "//")))) ; won't worry about comments on a line with code for now
 
-(defn varify! [^String asm]
-  (let [varname (clojure.string/replace asm #"[\@\(\)]" "")
-        address (next-var)]
+(defn target! [^String asm address]
+  (let [varname (clojure.string/replace asm #"[\@\(\)]" "")]
     (swap! var-table assoc varname address)))
+
+(defn varify! [asm]
+  (target! asm (next-var)))
 
 (defn get-dest [^String asm]
     (-> (re-find #"^([A-Z]++)=" asm)
