@@ -53,3 +53,11 @@
     (is (= "1111110000010000") (lookup-comp "D=M")))
   (testing "Output for M=0 should match reference"
     (is (= "1110101010001000") (lookup-comp "M=0"))))
+
+(deftest test-compile-c-instruction
+  (testing "output should match reference"
+    (is (= "1111110000010000" (compile-c-instruction "D=M")))
+    (is (= "1110001100001000" (compile-c-instruction "M=D")))
+    (is (= "1110101010001000" (compile-c-instruction "M=0")))
+    (is (= "1110001100000010" (compile-c-instruction "D;JEQ")))
+    (is (= "1111110010001000" (compile-c-instruction "M=M-1")))))
