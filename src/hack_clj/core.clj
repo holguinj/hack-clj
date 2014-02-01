@@ -88,7 +88,8 @@
 (defn parse-vars [code]
   (doall 
     (for [line code] 
-      (if (a-var? line) (varify! line)))))
+      (cond (a-var? line) (varify! line)
+            (target? line) (varify! line 2)))))
 
 (defn -main [file & args]
   (let [fout (clojure.string/replace file ".asm" ".hack")
