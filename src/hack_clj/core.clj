@@ -47,7 +47,7 @@
         (lookup-dest)))
 
 (defn get-comp [^String asm]
-    (-> (re-find #"=*([A-Z0-9\-\+]++);*" asm)
+    (-> (re-find #"[ADM]*=*([A-Z0-9\-\+\!\&\|]++);*" asm) 
         (nth 1)
         (lookup-comp)))
 

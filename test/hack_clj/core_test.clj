@@ -44,8 +44,6 @@
     (is (false? (target? "@(FOO)")))))
 
 (deftest test-lookup-comp
-  (testing "Output for A+1 should be the same as for M+1"
-    (is (= (lookup-comp "A+1") (lookup-comp "M+1"))))
   (testing "Output for D=M should match reference"
     (is (= "1111110000010000") (lookup-comp "D=M")))
   (testing "Output for M=0 should match reference"
