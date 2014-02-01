@@ -37,12 +37,13 @@
 (defn target? [^String asm]
   (false? (nil? (re-find #"^\(.+\)$" asm))))
 
-(defn varify! [^String asm]
-  (let [varname (clojure.string/replace asm #"[\@\(\)]" "")
-        address (next-var)]
-    (if (@var-table varname)
-        (str "@" (@var-table varname))
-        (swap! var-table assoc varname address))))
+(defn varify! 
+  ([^String asm address]
+    (let [varname (clojure.string/replace asm #"[\@\(\)]" "")]
+      (if (@var-table varname)
+          (str "@" (@var-table varname))
+          (swap! var-table assoc varname address))))
+  ([^String asm] (varify! asm (next-var))))
 
 (defn get-dest [^String asm]
     (-> (re-find #"^([A-Z]++)=" asm)
@@ -85,17 +86,24 @@
       (compile-a-instruction asm)
       (compile-c-instruction asm)))
 
+(defn pre-parse [code]
+  (let [line-number (atom 0)]
+    (for [line code]
+      (if (a-var? line) (varify! line)))))
+
 (defn -main [file & args]
   (let [fout (clojure.string/replace file ".asm" ".hack")
         code (->> (slurp file)
-                   (clojure.string/split-lines)
-                   (map cleanup)
-                   (filter (complement clojure.string/blank?)))]
+                  (clojure.string/split-lines)
+                  (map cleanup)
+                  (filter (complement clojure.string/blank?)))]
     (println "Making initial pass on" file "to scan for variables.")
-    (doall (for [line code] (if (a-var? line) (varify! line))))
+    (println "Code is:\n" code)
+    (pre-parse code)
     (println "Compiling" file "->" fout)
     (spit fout 
       (->> code
+           (filter (complement target?))
            (map hack-compile)
            (clojure.string/join "\n"))))
   (println "Done!"))
