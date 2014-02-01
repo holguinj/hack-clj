@@ -24,13 +24,10 @@
     (is (true? (a-var? "@ab12")))
     (is (false? (a-var? "@12ab")))))
 
-(deftest test-target!
+(deftest test-varify!
   (testing "varify! should give '@FOO' address 16"
     (varify! "@FOO")
-    (is (= 16 (@var-table "FOO"))))
-  (testing "target! should give '(SEVENS)' address 777"
-    (target! "(SEVENS)" 777)
-    (is (= 777 (@var-table "SEVENS")))))
+    (is (= 16 (@var-table "FOO")))))
 
 (deftest test-compile-a-instruction
   (testing "should return a 16-digit binary number"
