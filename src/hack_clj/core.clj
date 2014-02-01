@@ -1,4 +1,5 @@
 (ns hack-clj.core
+  (:gen-class :main true)
   (:require [hack-clj.util :refer :all]
             [hack-clj.lookup :refer :all]))
 
@@ -36,6 +37,10 @@
 (defn target? [^String asm]
   (false? (nil? (re-find #"^\(.+\)$" asm))))
 
+(defn code? [^String asm]
+  (and (false? (clojure.string/blank? asm))
+       (false? (.contains asm "\\")))) ; won't worry about comments on a line with code for now
+
 (defn varify! [^String asm]
   (let [varname (clojure.string/replace asm #"[\@\(\)]" "")
         address (next-var)]
@@ -68,3 +73,13 @@
        (get-comp asm)
        (get-dest asm)
        (get-jump asm)))
+
+(defn hack-compile [asm]
+  (if (a-instruction? asm) (compile-a-instruction asm)
+      (compile-c-instruction asm)))
+
+(defn -main [file & args]
+  (->> (slurp file)
+       (filter code?)
+       (map hack-compile)
+       (spit "out.hack")))
