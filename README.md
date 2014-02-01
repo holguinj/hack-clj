@@ -6,11 +6,7 @@ course.
 
 ## Limitations
 
-Many!
-
-* Ignores @variables
 * Ignores (LOOPS)
-* Ignores any line that contains `//`, no matter where it appears
 
 ## Requirements
 
