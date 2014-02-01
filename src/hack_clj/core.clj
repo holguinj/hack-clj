@@ -39,7 +39,7 @@
 
 (defn code? [^String asm]
   (and (false? (clojure.string/blank? asm))
-       (false? (.contains asm "\\")))) ; won't worry about comments on a line with code for now
+       (false? (.contains asm "//")))) ; won't worry about comments on a line with code for now
 
 (defn varify! [^String asm]
   (let [varname (clojure.string/replace asm #"[\@\(\)]" "")
@@ -79,7 +79,12 @@
       (compile-c-instruction asm)))
 
 (defn -main [file & args]
-  (->> (slurp file)
-       (filter code?)
-       (map hack-compile)
-       (spit "out.hack")))
+  (let [fout (clojure.string/replace file ".asm" ".hack")]
+    (println "Compiling" file "->" fout)
+    (spit fout 
+      (->> (slurp file)
+           (clojure.string/split-lines)
+           (filter code?)
+           (map hack-compile)
+           (clojure.string/join "\n"))))
+  (println "Done!"))
