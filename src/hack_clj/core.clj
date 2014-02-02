@@ -37,12 +37,14 @@
 (defn target? [^String asm]
   (false? (nil? (re-find #"^\(.+\)$" asm))))
 
-(defn varify! [^String asm]
-  (let [varname (clojure.string/replace asm #"[\@\(\)]" "")
-        address (next-var)]
-    (if (@var-table varname)
-        (str "@" (@var-table varname))
-        (swap! var-table assoc varname address))))
+(defn varify! 
+  ([^String asm address]
+    (let [varname (clojure.string/replace asm #"[\@\(\)]" "") ]
+      (if (@var-table varname)
+          (str "@" (@var-table varname))
+          (swap! var-table assoc varname address))))
+  ([asm] 
+   (varify! asm (next-var))))
 
 (defn get-dest [^String asm]
     (-> (re-find #"^([A-Z]++)=" asm)
