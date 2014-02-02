@@ -16,7 +16,7 @@
                       "R15" 15 "SCREEN" 16384 
                       "KBD" 24576}))
 
-(def var-counter (atom 14)) ;it really worries me that this has to start at 14...
+(def var-counter (atom 15)) ;it really worries me that this has to start at 14...
 
 (defn a-instruction? [^String asm]
   (false? (nil? (re-find #"^\@[0-9]++$" asm))))
@@ -35,12 +35,15 @@
 
 (defn varify! 
   ([^String asm address]
-    (let [varname (clojure.string/replace asm #"[\@\(\)]" "") ]
+    (let [varname (clojure.string/replace asm #"[\@\(\)]" "")]
       (if (@var-table varname)
           (str "@" (@var-table varname))
           (swap! var-table assoc varname address))))
-  ([asm] 
-   (varify! asm (swap! var-counter inc))))
+  ([^String asm] 
+    (let [varname (clojure.string/replace asm #"[\@\(\)]" "")]
+     (if (@var-table varname)
+         (varify! asm (@var-table varname))
+         (varify! asm (swap! var-counter inc))))))
 
 (defn get-dest [^String asm]
     (-> (re-find #"^([A-Z]++)=" asm)
@@ -48,7 +51,7 @@
         (lookup-dest)))
 
 (defn get-comp [^String asm]
-    (-> (re-find #"[ADM]*=*([A-Z0-9\-\+\!\&\|]++);*" asm) 
+    (-> (re-find #"[ADM]*=*([A-Z0-9\-\+\!\&\|\.]++);*" asm) 
         (nth 1)
         (lookup-comp)))
 
