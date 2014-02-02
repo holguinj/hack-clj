@@ -127,7 +127,11 @@
        (if (a-var? line)
            (do (varify! line)))))))
 
-(defn -main [file & args]
+(defn -main 
+  "Reads a filename from standard input and compiles that file."
+  [^String file & args]
+  (if (false? (.contains file ".asm"))
+      (throw (Exception. "Error! Filename must contain '.asm'!")))
   (let [fout (clojure.string/replace file ".asm" ".hack")
         code (->> (slurp file)
                    (clojure.string/split-lines)
