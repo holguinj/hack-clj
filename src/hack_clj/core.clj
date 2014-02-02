@@ -16,12 +16,16 @@
                       "R15" 15 "SCREEN" 16384 
                       "KBD" 24576}))
 
-(def var-counter (atom 15)) ;it really worries me that this has to start at 14...
+(def var-counter (atom 15))
 
-(defn a-instruction? [^String asm]
+(defn a-instruction?
+  "Returns true if the input is an A-instruction consisting of '@' followed by one or more digits"
+  [^String asm]
   (false? (nil? (re-find #"^\@[0-9]++$" asm))))
 
-(defn a-var? [^String asm]
+(defn a-var? 
+  "Returns true if the input is a variable-type A-instruction"
+  [^String asm]
   (false? (nil? (re-find #"^\@[a-zA-Z]++" asm))))
 
 (defn jump? [^String asm]
@@ -34,6 +38,8 @@
   (false? (nil? (re-find #"^\(.+\)$" asm))))
 
 (defn varify! 
+  "Given an A-instruction, ensures that a variable is present in the var-table. 
+  If there is not, increments var-counter and adds the variable to the table with that value"
   ([^String asm address]
     (let [varname (clojure.string/replace asm #"[\@\(\)]" "")]
       (if (@var-table varname)
@@ -45,22 +51,36 @@
          (varify! asm (@var-table varname))
          (varify! asm (swap! var-counter inc))))))
 
-(defn get-dest [^String asm]
+(defn get-dest
+  "Given a C-instruction, returns the binary segment corresponding to the 'dest' segment, which is the part
+  preceding the '='. The 'dest' segment is optional, and this function returns '000' if there is no '='."
+  [^String asm]
     (-> (re-find #"^([A-Z]++)=" asm)
         (nth 1)
         (lookup-dest)))
 
-(defn get-comp [^String asm]
+(defn get-comp 
+  "Given a C-instruction, returns the binary segment corresponding to the 'comp' segment, 
+  which either follows '=' or preceeds ';'. The 'comp' segment is required for C-instructions,
+  and this function will produce incorrect output if none is present."
+  [^String asm]
     (-> (re-find #"[ADM]*=*([A-Z0-9\-\+\!\&\|\.]++);*" asm) 
         (nth 1)
         (lookup-comp)))
 
-(defn get-jump [^String asm]
+(defn get-jump
+  "Given a C-instruction, returns the binary segment corresponding to the 'jump' segment, which
+  follows the ';'. The 'jump' segment is optional, and this function will return '000' if it is not
+  present."
+  [^String asm]
     (-> (re-find #";([A-Z]++)$" asm)
         (nth 1)
         (lookup-jump)))
 
-(defn compile-a-instruction [^String asm]
+(defn compile-a-instruction 
+  "Given an A-instruction, resolves the variable (if present), strips the leading '@', and returns
+  a string containing the 16-digit binary representation of the remaining integer."
+  [^String asm]
   (if (a-var? asm) 
       (compile-a-instruction (varify! asm))
       (-> asm
@@ -69,34 +89,43 @@
           (Integer/toString 2)
           (pad 16))))
 
-(defn compile-c-instruction [^String asm]
+(defn compile-c-instruction 
+  "Given a C-instruction, combines '111' (indicates C-expression) and the binary corresponding to 
+  the 'comp', 'dest', and 'jump' segments."
+  [^String asm]
   (str "111"
        (get-comp asm)
        (get-dest asm)
        (get-jump asm)))
 
-(defn cleanup [^String asm]
+(defn cleanup 
+  "Given a program line, removes whitespace and comments, then uppercases the result."
+  [^String asm]
   (-> asm
       (clojure.string/replace #"\s" "")
       (clojure.string/replace #"//\S*" "")
       (clojure.string/upper-case)))
 
-(defn hack-compile [asm]
+(defn hack-compile
+  "Given a line of pure assembly code, compiles it as either an A-instruction or a C-instruction"
+  [asm]
   (if (or (a-instruction? asm) (a-var? asm)) 
       (compile-a-instruction asm)
       (compile-c-instruction asm)))
 
-(defn parse-vars [code]
+(defn parse-vars 
+  "Should be executed before compilation to build the var-table"
+  [code]
   (let [line-number (atom 0)]
    (doall 
      (for [line code] 
        (if (target? line) 
-           (do (varify! line @line-number) (println line ":" @line-number))
+           (do (varify! line @line-number))
            (swap! line-number inc))))
    (doall 
      (for [line code]
        (if (a-var? line)
-           (do (varify! line) (println line ":" (@var-table (subs line 1)))))))))
+           (do (varify! line)))))))
 
 (defn -main [file & args]
   (let [fout (clojure.string/replace file ".asm" ".hack")
@@ -104,7 +133,7 @@
                    (clojure.string/split-lines)
                    (map cleanup)
                    (filter (complement clojure.string/blank?)))]
-    (println "Making initial pass on" file "to scan for variables.")
+    (println "Making initial pass on" file "to scan for variables and jump targets.")
     (parse-vars code)
     (println "Compiling" file "->" fout)
     (spit fout 
