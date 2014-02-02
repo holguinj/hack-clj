@@ -1,7 +1,8 @@
 (ns hack-clj.core
   (:gen-class :main true)
   (:require [hack-clj.util :refer :all]
-            [hack-clj.lookup :refer :all]))
+            [hack-clj.lookup :refer :all]
+            [clojure.java.io :as io]))
 
 (def var-table (atom {"R0" 0 "SP" 0
                       "R1" 1 "LCL" 1
@@ -132,11 +133,11 @@
   [^String file & args]
   (if (false? (.contains file ".asm"))
       (throw (Exception. "Error! Filename must contain '.asm'!")))
+  (with-open [rdr (io/reader file)]
   (let [fout (clojure.string/replace file ".asm" ".hack")
-        code (->> (slurp file)
-                   (clojure.string/split-lines)
-                   (map cleanup)
-                   (filter (complement clojure.string/blank?)))]
+        code (->> (line-seq rdr)
+                  (map cleanup)
+                  (filter (complement clojure.string/blank?)))]
     (println "Making initial pass on" file "to scan for variables and jump targets.")
     (parse-vars code)
     (println "Compiling" file "->" fout)
@@ -144,5 +145,5 @@
       (->> code
            (filter (complement target?))
            (map hack-compile)
-           (clojure.string/join "\n"))))
+           (clojure.string/join "\n")))))
   (println "Done!"))
