@@ -2,9 +2,11 @@
 
 A Clojure application that compiles Hack assembly (.asm) files into Hack
 binary (.hack) files, following chapter 6 of the [Nand2Tetris](http://www.nand2tetris.org)
-course.
+course. 
 
 Hack-clj produces code that is identical to the reference assembler from [Nand2Tetris](http://www.nand2tetris.org). It doesn't implement any additional features or functionality.
+
+I'm currently working on implementing the '.vm' translator from chapter 7 the course as part of this program. Switch to the 'vm' branch to have a look, but it isn't functional yet.
 
 ## Limitations
 
