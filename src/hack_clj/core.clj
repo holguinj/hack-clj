@@ -104,6 +104,7 @@
     (println "Compiling" file "->" fout)
     (spit fout 
       (->> code
+           (filter (complement target?))
            (map hack-compile)
            (clojure.string/join "\n"))))
   (println "Done!"))
