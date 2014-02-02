@@ -88,15 +88,16 @@
       (compile-c-instruction asm)))
 
 (defn parse-vars [code]
-  (doall 
-    (let [line-number (atom 0)]
-      (for [line code] 
-        (if (target? line) 
-            (do (varify! line @line-number) (println line ":" @line-number))
-            (swap! line-number inc)))
-      (for [line code]
-        (if (a-var? line)
-            (varify! line))))))
+  (let [line-number (atom 0)]
+   (doall 
+     (for [line code] 
+       (if (target? line) 
+           (do (varify! line @line-number) (println line ":" @line-number))
+           (swap! line-number inc))))
+   (doall 
+     (for [line code]
+       (if (a-var? line)
+           (varify! line))))))
 
 (defn -main [file & args]
   (let [fout (clojure.string/replace file ".asm" ".hack")
