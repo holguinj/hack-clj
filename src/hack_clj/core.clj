@@ -134,16 +134,16 @@
   (if (false? (.contains file ".asm"))
       (throw (Exception. "Error! Filename must contain '.asm'!")))
   (with-open [rdr (io/reader file)]
-  (let [fout (clojure.string/replace file ".asm" ".hack")
-        code (->> (line-seq rdr)
-                  (map cleanup)
-                  (filter (complement clojure.string/blank?)))]
-    (println "Making initial pass on" file "to scan for variables and jump targets.")
-    (parse-vars code)
-    (println "Compiling" file "->" fout)
-    (spit fout 
-      (->> code
-           (filter (complement target?))
-           (map hack-compile)
-           (clojure.string/join "\n")))))
+    (let [fout (clojure.string/replace file ".asm" ".hack")
+          code (->> (line-seq rdr)
+                    (map cleanup)
+                    (filter (complement clojure.string/blank?)))]
+      (println "Making initial pass on" file "to scan for variables and jump targets.")
+      (parse-vars code)
+      (println "Compiling" file "->" fout)
+      (spit fout 
+        (->> code
+             (filter (complement target?))
+             (map hack-compile)
+             (clojure.string/join "\n")))))
   (println "Done!"))
