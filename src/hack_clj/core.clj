@@ -91,9 +91,12 @@
   (doall 
     (let [line-number (atom 0)]
       (for [line code] 
-        (cond (a-var? line) (do (varify! line) (swap! line-number inc))
-              (target? line) (varify! line @line-number)
-              :else (swap! line-number inc))))))
+        (if (target? line) 
+            (do (varify! line @line-number) (println line ":" @line-number))
+            (swap! line-number inc)))
+      (for [line code]
+        (if (a-var? line)
+            (varify! line))))))
 
 (defn -main [file & args]
   (let [fout (clojure.string/replace file ".asm" ".hack")
