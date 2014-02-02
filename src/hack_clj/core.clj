@@ -65,6 +65,8 @@
   which either follows '=' or preceeds ';'. The 'comp' segment is required for C-instructions,
   and this function will produce incorrect output if none is present."
   [^String asm]
+  {:pre [(or (jump? asm) (assignment? asm))]
+   :post [(= 7 (.length %))]}
     (-> (re-find #"[ADM]*=*([A-Z0-9\-\+\!\&\|\.]++);*" asm) 
         (nth 1)
         (lookup-comp)))
@@ -74,6 +76,7 @@
   follows the ';'. The 'jump' segment is optional, and this function will return '000' if it is not
   present."
   [^String asm]
+  {:post [(= 3 (.length %))]}
     (-> (re-find #";([A-Z]++)$" asm)
         (nth 1)
         (lookup-jump)))
@@ -94,6 +97,7 @@
   "Given a C-instruction, combines '111' (indicates C-expression) and the binary corresponding to 
   the 'comp', 'dest', and 'jump' segments."
   [^String asm]
+  {:post [(= 16 (.length %))]}
   (str "111"
        (get-comp asm)
        (get-dest asm)
@@ -109,7 +113,9 @@
 
 (defn hack-compile
   "Given a line of pure assembly code, compiles it as either an A-instruction or a C-instruction"
-  [asm]
+  [^String asm]
+  {:pre [(false? (clojure.string/blank? asm))]
+   :post [(= 16 (.length %))]}
   (if (or (a-instruction? asm) (a-var? asm)) 
       (compile-a-instruction asm)
       (compile-c-instruction asm)))
@@ -131,8 +137,7 @@
 (defn -main 
   "Reads a filename from standard input and compiles that file."
   [^String file & args]
-  (if (false? (.contains file ".asm"))
-      (throw (Exception. "Error! Filename must contain '.asm'!")))
+  {:pre [(.contains file ".asm")]}
   (with-open [rdr (io/reader file)]
     (let [fout (clojure.string/replace file ".asm" ".hack")
           code (->> (line-seq rdr)
