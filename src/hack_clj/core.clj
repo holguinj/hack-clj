@@ -16,11 +16,7 @@
                       "R15" 15 "SCREEN" 16384 
                       "KBD" 24576}))
 
-(defn next-var []
-  (->> (vals @var-table)
-       (filter #(< % (@var-table "SCREEN")))
-       (reduce max)
-       (inc)))
+(def var-counter (atom 14)) ;it really worries me that this has to start at 14...
 
 (defn a-instruction? [^String asm]
   (false? (nil? (re-find #"^\@[0-9]++$" asm))))
@@ -44,7 +40,7 @@
           (str "@" (@var-table varname))
           (swap! var-table assoc varname address))))
   ([asm] 
-   (varify! asm (next-var))))
+   (varify! asm (swap! var-counter inc))))
 
 (defn get-dest [^String asm]
     (-> (re-find #"^([A-Z]++)=" asm)
@@ -97,7 +93,7 @@
    (doall 
      (for [line code]
        (if (a-var? line)
-           (varify! line))))))
+           (do (varify! line) (println line ":" (@var-table (subs line 1)))))))))
 
 (defn -main [file & args]
   (let [fout (clojure.string/replace file ".asm" ".hack")
