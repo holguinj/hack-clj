@@ -1,23 +1,23 @@
 (ns hack-clj.vm-lookup)
 
 (def init 
-  ["//Init"
+  '("//Init"
    "@256"
    "D=A"
    "@SP"
-   "M=D"])
+   "M=D"))
 
 (def push
-  ["//push above @value to the stack"
+  '("//push above @value to the stack"
    "D=A"
    "@SP"
    "A=M"
    "M=D"
    "@SP"
-   "M=M+1"])
+   "M=M+1"))
 
 (def add
-  ["//add"
+  '("//add"
    "@SP"
    "M=M-1"
    "A=M"
@@ -28,10 +28,10 @@
    "A=M"
    "M=M+D"
    "@SP"
-   "M=M+1"])
+   "M=M+1"))
 
 (def sub
-  ["//sub"
+  '("//sub"
    "@SP"
    "M=M-1"
    "A=M"
@@ -42,4 +42,4 @@
    "A=M"
    "M=M-D"
    "@SP"
-   "M=M+1"])
+   "M=M+1"))

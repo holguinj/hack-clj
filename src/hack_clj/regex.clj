@@ -18,10 +18,11 @@
 
 (def c-not #"^not")
 
-(def c-arithmetic (clojure.string/join "|" [c-add c-sub c-neg c-eq c-gt c-lt c-and c-or c-not]))
-;(def c-arithmetic #"^add|^sub|^neg|^eq|^gt|^lt|^and|^or|^not")
+(def c-arithmetic #"^add|^sub|^neg|^eq|^gt|^lt|^and|^or|^not")
 
 (def c-push #"^push")
+
+(def c-push-constant #"^push constant")
 
 (def c-pop #"^pop")
 

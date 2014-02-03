@@ -23,10 +23,21 @@
     (re-contains? vm c-add) lookup/add 
     (re-contains? vm c-sub) lookup/sub))
 
+(defn compile-push-constant [^String vm]
+  (let [value (-> vm
+                  (clojure.string/split #"\s")
+                  (last))]
+    (conj lookup/push
+          (str "@" value)))) 
+
+(defn compile-push [^String vm]
+  {:pre [(= :c-push (command-type vm))]}
+  (cond
+    (re-contains? vm c-push-constant) (compile-push-constant vm)))
+
 (comment (defn c-compile 
   "Given a line of pure vm code, return a seq of assembly commands"
   [^String vm]
   (case (command-type vm)
     :c-arithmetic (compile-arithmetic vm)
-    ) 
-  ))
+    :c-push (compile-push vm))))
