@@ -1,6 +1,6 @@
 (ns hack-clj.asm
   (:require [hack-clj.util :refer :all]
-            [hack-clj.lookup :refer :all]))
+            [hack-clj.asm-lookup :refer :all]))
 
 (def var-table (atom {"R0" 0 "SP" 0
                     "R1" 1 "LCL" 1
