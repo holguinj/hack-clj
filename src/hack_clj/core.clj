@@ -1,6 +1,7 @@
 (ns hack-clj.core
   (:gen-class :main true)
   (:require [hack-clj.asm :refer :all]
+            [hack-clj.vm :refer :all]
             [clojure.java.io :as io]))
 
 (defn fout-name 
@@ -18,9 +19,9 @@
              (.contains file ".vm"))]}
   (with-open [rdr (io/reader file)]
     (let [fout (fout-name file)
-          code (->> (line-seq rdr)
-                    (map cleanup)
-                    (filter (complement clojure.string/blank?)))]
+          code (line-seq rdr)]
       (println "Compiling" file "->" fout)
-      (if (.contains file ".asm") (compile-asm code fout))))
+      (if (.contains file ".asm") 
+        (compile-asm code fout)
+        (compile-vm code fout))))
   (println "Done!"))

@@ -106,7 +106,7 @@
   [^String asm]
   (-> asm
       (clojure.string/replace #"\s" "")
-      (clojure.string/replace #"//\S*" "")
+      (clojure.string/replace #"\s*//\S*" "")
       (clojure.string/upper-case)))
 
 (defn hack-compile
@@ -140,6 +140,8 @@
   (parse-vars code)
   (spit fout 
     (->> code
+      (map cleanup)
+      (filter (complement clojure.string/blank?))
       (filter (complement target?))
       (map hack-compile)
       (clojure.string/join "\n"))))

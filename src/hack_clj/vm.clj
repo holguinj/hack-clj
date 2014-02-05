@@ -15,18 +15,19 @@
     (re-contains? vm re/c-label) :c-label 
     (re-contains? vm re/c-function) :c-function
     (re-contains? vm re/c-return) :c-return
-    (re-contains? vm re/c-call) :c-call))
+    (re-contains? vm re/c-call) :c-call
+    :else (println "No matching command type for:" vm)))
 
 (defn compile-arithmetic [^String vm]
   {:pre [(= :c-arithmetic (command-type vm))]}
   (cond
-    (re-contains? vm c-add) lookup/add 
-    (re-contains? vm c-sub) lookup/sub
-    (re-contains? vm c-neg) lookup/neg
-    (re-contains? vm c-eq) (do (swap! lookup/loop-counter inc) lookup/eq)
-    (re-contains? vm c-and) lookup/and
-    (re-contains? vm c-or) lookup/or
-    (re-contains? vm c-not) lookup/not))
+    (re-contains? vm re/c-add) lookup/add 
+    (re-contains? vm re/c-sub) lookup/sub
+    (re-contains? vm re/c-neg) lookup/neg
+    (re-contains? vm re/c-eq) (do (swap! lookup/loop-counter inc) lookup/eq)
+    (re-contains? vm re/c-and) lookup/and
+    (re-contains? vm re/c-or) lookup/or
+    (re-contains? vm re/c-not) lookup/not))
 
 (defn compile-push-constant [^String vm]
   (let [value (-> vm
@@ -38,11 +39,26 @@
 (defn compile-push [^String vm]
   {:pre [(= :c-push (command-type vm))]}
   (cond
-    (re-contains? vm c-push-constant) (compile-push-constant vm)))
+    (re-contains? vm re/c-push-constant) (compile-push-constant vm)))
 
-(comment (defn c-compile 
+
+(defn compile-instruction
   "Given a line of pure vm code, return a seq of assembly commands"
   [^String vm]
-  (case (command-type vm)
-    :c-arithmetic (compile-arithmetic vm)
-    :c-push (compile-push vm))))
+  (clojure.string/join "\n" 
+    (case (command-type vm)
+      :c-arithmetic (compile-arithmetic vm)
+      :c-push (compile-push vm)
+      :else (println "No matching command type for:" vm))))
+
+(defn vm-cleanup [^String vm]
+  (clojure.string/replace vm #"\s*//.*" ""))
+
+(defn compile-vm
+  [^String code fout]
+  (spit fout
+    (->> code
+       (map vm-cleanup)
+       (filter (complement clojure.string/blank?))
+       (map compile-instruction)
+       (clojure.string/join "\n"))))
