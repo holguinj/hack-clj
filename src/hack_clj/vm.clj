@@ -18,13 +18,16 @@
     (re-contains? vm re/c-call) :c-call
     :else (println "No matching command type for:" vm)))
 
+
 (defn compile-arithmetic [^String vm]
   {:pre [(= :c-arithmetic (command-type vm))]}
   (cond
     (re-contains? vm re/c-add) lookup/add 
     (re-contains? vm re/c-sub) lookup/sub
     (re-contains? vm re/c-neg) lookup/neg
-    (re-contains? vm re/c-eq) (do (swap! lookup/loop-counter inc) lookup/eq)
+    (re-contains? vm re/c-eq) (lookup/eq!)
+    (re-contains? vm re/c-lt) (lookup/lt!)
+    (re-contains? vm re/c-gt) (lookup/gt!)
     (re-contains? vm re/c-and) lookup/and
     (re-contains? vm re/c-or) lookup/or
     (re-contains? vm re/c-not) lookup/not))

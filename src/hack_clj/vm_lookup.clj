@@ -1,5 +1,7 @@
 (ns hack-clj.vm-lookup)
 
+(def loop-counter (atom 0))
+
 (def init 
   '("//Init"
     "@256"
@@ -86,9 +88,9 @@
     "@SP"
     "M=M+1"))
 
-(def loop-counter (atom 0))
 
-(def eq
+(defn eq! []
+  (swap! loop-counter inc)
   ["@SP"
    "M=M-1"
    "A=M"
@@ -105,5 +107,47 @@
    "A=M"
    "M=-1"
    (str "(eq" @loop-counter ")")
+   "@SP"
+   "M=M+1"])
+
+(defn gt! []
+  (swap! loop-counter inc)
+  ["@SP"
+   "M=M-1"
+   "A=M"
+   "D=M"
+   "@SP"
+   "M=M-1"
+   "A=M"
+   "M=M-D"
+   "D=M"
+   "M=0"
+   (str "@gt" @loop-counter)
+   "D;JLE"
+   "@SP"
+   "A=M"
+   "M=-1"
+   (str "(gt" @loop-counter ")")
+   "@SP"
+   "M=M+1"])
+
+(defn lt! []
+  (swap! loop-counter inc)
+  ["@SP"
+   "M=M-1"
+   "A=M"
+   "D=M"
+   "@SP"
+   "M=M-1"
+   "A=M"
+   "M=M-D"
+   "D=M"
+   "M=0"
+   (str "@lt" @loop-counter)
+   "D;JGE"
+   "@SP"
+   "A=M"
+   "M=-1"
+   (str "(lt" @loop-counter ")")
    "@SP"
    "M=M+1"])
