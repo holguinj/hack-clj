@@ -21,7 +21,12 @@
   {:pre [(= :c-arithmetic (command-type vm))]}
   (cond
     (re-contains? vm c-add) lookup/add 
-    (re-contains? vm c-sub) lookup/sub))
+    (re-contains? vm c-sub) lookup/sub
+    (re-contains? vm c-neg) lookup/neg
+    (re-contains? vm c-eq) (do (swap! lookup/loop-counter inc) lookup/eq)
+    (re-contains? vm c-and) lookup/and
+    (re-contains? vm c-or) lookup/or
+    (re-contains? vm c-not) lookup/not))
 
 (defn compile-push-constant [^String vm]
   (let [value (-> vm

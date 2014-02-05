@@ -86,4 +86,24 @@
     "@SP"
     "M=M+1"))
 
+(def loop-counter (atom 0))
 
+(def eq
+  ["@SP"
+   "M=M-1"
+   "A=M"
+   "D=M"
+   "@SP"
+   "M=M-1"
+   "A=M"
+   "M=M-D"
+   "D=M"
+   "M=0"
+   (str "@eq" @loop-counter)
+   "D;JNE"
+   "@SP"
+   "A=M"
+   "M=-1"
+   (str "(eq" @loop-counter ")")
+   "@SP"
+   "M=M+1"])
