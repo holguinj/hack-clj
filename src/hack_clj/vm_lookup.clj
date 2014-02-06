@@ -2,6 +2,10 @@
 
 (def loop-counter (atom 0))
 
+(def addresses
+  {"constant" 0
+   })
+
 (def init 
   '("//Init"
     "@256"

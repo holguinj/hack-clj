@@ -18,6 +18,8 @@
     (re-contains? vm re/c-call) :c-call
     :else (println "No matching command type for:" vm)))
 
+(defn argument [n ^String vm]
+  (nth (re-seq #"\w+" vm) n))
 
 (defn compile-arithmetic [^String vm]
   {:pre [(= :c-arithmetic (command-type vm))]}
@@ -44,7 +46,6 @@
   (cond
     (re-contains? vm re/c-push-constant) (compile-push-constant vm)))
 
-
 (defn compile-instruction
   "Given a line of pure vm code, return a seq of assembly commands"
   [^String vm]
@@ -63,5 +64,6 @@
     (->> code
        (map vm-cleanup)
        (filter (complement clojure.string/blank?))
+       (map clojure.string/lower-case)
        (map compile-instruction)
        (clojure.string/join "\n"))))
