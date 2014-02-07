@@ -21,8 +21,9 @@
 (defn argument [n ^String vm]
   (nth (rest (re-seq #"\w+" vm)) n))
 
-(defn compile-arithmetic [^String vm]
-  {:pre [(= :c-arithmetic (command-type vm))]}
+(defmulti compile-instruction command-type)
+
+(defmethod compile-instruction :c-arithmetic [^String vm]
   (cond
     (re-contains? vm re/c-add) lookup/add 
     (re-contains? vm re/c-sub) lookup/sub
@@ -34,23 +35,9 @@
     (re-contains? vm re/c-or) lookup/or
     (re-contains? vm re/c-not) lookup/not))
 
-(defn compile-push-constant [^String vm]
-  (let [value (argument 1 vm)]
-    (lookup/push-constant value)))
-
-(defn compile-push [^String vm]
-  {:pre [(= :c-push (command-type vm))]}
+(defmethod compile-instruction :c-push [^String vm]
   (cond
-    (re-contains? vm re/c-push-constant) (compile-push-constant vm)))
-
-(defn compile-instruction
-  "Given a line of pure vm code, return a seq of assembly commands"
-  [^String vm]
-  (clojure.string/join "\n" 
-    (case (command-type vm)
-      :c-arithmetic (compile-arithmetic vm)
-      :c-push (compile-push vm)
-      :else (println "No matching command type for:" vm))))
+    (re-contains? vm re/c-push-constant) (lookup/push-constant (argument 1 vm))))
 
 (defn vm-cleanup [^String vm]
   (clojure.string/replace vm #"\s*//.*" ""))
@@ -63,4 +50,5 @@
        (filter (complement clojure.string/blank?))
        (map clojure.string/lower-case)
        (map compile-instruction)
+       (map (partial clojure.string/join "\n"))
        (clojure.string/join "\n"))))
