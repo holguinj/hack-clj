@@ -19,7 +19,7 @@
     :else (println "No matching command type for:" vm)))
 
 (defn argument [n ^String vm]
-  (nth (re-seq #"\w+" vm) n))
+  (nth (rest (re-seq #"\w+" vm)) n))
 
 (defn compile-arithmetic [^String vm]
   {:pre [(= :c-arithmetic (command-type vm))]}
@@ -35,11 +35,8 @@
     (re-contains? vm re/c-not) lookup/not))
 
 (defn compile-push-constant [^String vm]
-  (let [value (-> vm
-                  (clojure.string/split #"\s")
-                  (last))]
-    (conj lookup/push
-          (str "@" value)))) 
+  (let [value (argument 1 vm)]
+    (lookup/push-constant value)))
 
 (defn compile-push [^String vm]
   {:pre [(= :c-push (command-type vm))]}

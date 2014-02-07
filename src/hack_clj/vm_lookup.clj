@@ -4,6 +4,7 @@
 
 (def addresses
   {"constant" 0
+   "local" 1
    })
 
 (def init 
@@ -13,14 +14,15 @@
     "@SP"
     "M=D"))
 
-(def push
-  '("//push above @value to the stack"
-    "D=A"
-    "@SP"
-    "A=M"
-    "M=D"
-    "@SP"
-    "M=M+1"))
+(defn push-constant [value]
+  ["//push constant"
+   (str "@" value)
+   "D=A"
+   "@SP"
+   "A=M"
+   "M=D"
+   "@SP"
+   "M=M+1"])
 
 (def add
   '("//add"
@@ -92,6 +94,23 @@
     "@SP"
     "M=M+1"))
 
+(defn push-address [address]
+  [(str "@" address)
+   "D=M"
+   "@SP"
+   "A=M"
+   "M=D"
+   "@SP"
+   "M=M+1"])
+
+(defn pop-address [address]
+  ["@SP"
+   "A=M"
+   "D=M"
+   (str "@" address)
+   "M=D"
+   "@SP"
+   "M=M+1"])
 
 (defn eq! []
   (swap! loop-counter inc)
