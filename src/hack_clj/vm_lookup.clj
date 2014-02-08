@@ -2,10 +2,29 @@
 
 (def loop-counter (atom 0))
 
-(def addresses
-  {"constant" 0
-   "local" 1
-   })
+(def base-pointer
+  {"local" 1
+   "argument" 2
+   "this" 3
+   "that" 4
+   "temp" 5
+   "static" 16})
+
+(defn push [^String segment offset]
+  (if (.contains segment "constant")
+    (push-constant offset)
+    (let [base (base-pointer segment)]
+      [(str "@" offset)
+       "D=A"
+       (str "@" base)
+       "A=M"
+       "A=A+D"
+       "D=M"
+       "@SP"
+       "A=M"
+       "M=D"
+       "@SP"
+       "M=M+1"])))
 
 (def init 
   '("//Init"
