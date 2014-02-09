@@ -5,7 +5,7 @@
   (false? (nil? (re-find re s))))
 
 (defn argument [n ^String vm]
-  (nth (rest (re-seq #"\w+" vm)) n))
+  (nth (rest (re-seq #"\S+" vm)) n))
 
 (defn pad [^String s n]
   (if (<= n (.length s))

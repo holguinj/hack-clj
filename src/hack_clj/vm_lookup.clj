@@ -261,7 +261,7 @@
      "0;JMP"]))
 
 (defn if-goto [^String vm]
-  (let [target (argument 1 vm)]
+  (let [target (argument 0 vm)]
     [(str "//if-goto " target)
      "@SP"
      "M=M-1"
