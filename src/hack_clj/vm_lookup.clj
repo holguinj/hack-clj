@@ -248,3 +248,24 @@
    (str "(lt" @loop-counter ")")
    "@SP"
    "M=M+1"])
+
+(defn label [^String vm]
+  (let [target (argument 0 vm)]
+    [(str "//label " target)
+     (str "(" target ")")]))
+
+(defn goto [^String vm]
+  (let [target (argument 0 vm)]
+    [(str "//goto " target)
+     (str "@" target)
+     "0;JMP"]))
+
+(defn if-goto [^String vm]
+  (let [target (argument 1 vm)]
+    [(str "//if-goto " target)
+     "@SP"
+     "M=M-1"
+     "A=M"
+     "D=M"
+     (str "@" target)
+     "D;JNE"]))

@@ -13,6 +13,8 @@
     (re-contains? vm re/c-push) :c-push
     (re-contains? vm re/c-pop) :c-pop
     (re-contains? vm re/c-label) :c-label 
+    (re-contains? vm re/c-goto) :c-goto 
+    (re-contains? vm re/c-if) :c-if
     (re-contains? vm re/c-function) :c-function
     (re-contains? vm re/c-return) :c-return
     (re-contains? vm re/c-call) :c-call
@@ -37,6 +39,15 @@
 
 (defmethod compile-instruction :c-pop [^String vm]
   (lookup/compile-pop vm))
+
+(defmethod compile-instruction :c-label [^String vm]
+  (lookup/label vm))
+
+(defmethod compile-instruction :c-goto [^String vm]
+  (lookup/goto vm))
+
+(defmethod compile-instruction :c-if [^String vm]
+  (lookup/if-goto vm))
 
 (defn vm-cleanup [^String vm]
   (clojure.string/replace vm #"\s*//.*" ""))

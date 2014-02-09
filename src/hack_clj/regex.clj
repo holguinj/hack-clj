@@ -28,7 +28,9 @@
 
 (def c-label #"^label")
 
-(def c-if #"^if")
+(def c-goto #"^goto")
+
+(def c-if #"^if-goto")
 
 (def c-function #"^function")
 
