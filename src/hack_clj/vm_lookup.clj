@@ -1,20 +1,79 @@
-(ns hack-clj.vm-lookup)
+(ns hack-clj.vm-lookup
+  (:require [hack-clj.util :refer :all]))
 
 (def loop-counter (atom 0))
 
 (def base-pointer
   {"local" 1
    "argument" 2
+   "pointer" 3
    "this" 3
    "that" 4
    "temp" 5
    "static" 16})
 
-(defn push [^String segment offset]
-  (if (.contains segment "constant")
-    (push-constant offset)
-    (let [base (base-pointer segment)]
-      [(str "@" offset)
+(defn push-address [address]
+  [(str "@" address)
+   "D=M"
+   "@SP"
+   "A=M"
+   "M=D"
+   "@SP"
+   "M=M+1"])
+
+(defn pop-address [address]
+  ["@SP"
+   "M=M-1"
+   "A=M"
+   "D=M"
+   (str "@" address)
+   "M=D"])
+
+(defmulti compile-push (partial argument 0))
+
+(defmulti compile-pop (partial argument 0))
+
+(defmethod compile-push "constant" [^String vm]
+  (let [value (argument 1 vm)]
+    [(str "//push constant " value)
+     (str "@" value)
+     "D=A"
+     "@SP"
+     "A=M"
+     "M=D"
+     "@SP"
+     "M=M+1"]))
+
+(defmethod compile-push "temp" [^String vm]
+  (let [base (base-pointer "temp")
+        offset (Integer. (argument 1 vm))
+        address (+ base offset)]
+    (push-address address)))
+
+(defmethod compile-pop "temp" [^String vm]
+  (let [base (base-pointer "temp")
+        offset (Integer. (argument 1 vm))
+        address (+ base offset)]
+    (pop-address address)))
+
+(defmethod compile-push "pointer" [^String vm]
+  (let [base (base-pointer "pointer")
+        offset (Integer. (argument 1 vm))
+        address (+ base offset)]
+    (push-address address)))
+
+(defmethod compile-pop "pointer" [^String vm]
+  (let [base (base-pointer "pointer")
+        offset (Integer. (argument 1 vm))
+        address (+ base offset)]
+    (pop-address address)))
+
+(defmethod compile-push :default [^String vm]
+  (let [segment (argument 0 vm)
+        offset (Integer. (argument 1 vm))
+        base (base-pointer segment)]
+      [(str "//push " segment " " offset)
+       (str "@" offset)
        "D=A"
        (str "@" base)
        "A=M"
@@ -24,7 +83,27 @@
        "A=M"
        "M=D"
        "@SP"
-       "M=M+1"])))
+       "M=M+1"]))
+
+(defmethod compile-pop :default [^String vm]
+  (let [segment (argument 0 vm)
+        offset (Integer. (argument 1 vm))
+        base (base-pointer segment)]
+      [(str "//pop " segment " " offset)
+       "@SP"
+       "M=M-1"
+       (str "@" base)
+       "D=M"
+       (str "@" offset)
+       "D=D+A"
+       "@R13"
+       "M=D"
+       "@SP"
+       "A=M"
+       "D=M"
+       "@R13"
+       "A=M"
+       "M=D"]))
 
 (def init 
   '("//Init"
@@ -32,16 +111,6 @@
     "D=A"
     "@SP"
     "M=D"))
-
-(defn push-constant [value]
-  ["//push constant"
-   (str "@" value)
-   "D=A"
-   "@SP"
-   "A=M"
-   "M=D"
-   "@SP"
-   "M=M+1"])
 
 (def add
   '("//add"
@@ -102,7 +171,8 @@
     "M=M+1"))
 
 (def or
-  '("@SP"
+  '("//or"
+    "@SP"
     "M=M-1"
     "A=M"
     "D=M"
@@ -113,27 +183,10 @@
     "@SP"
     "M=M+1"))
 
-(defn push-address [address]
-  [(str "@" address)
-   "D=M"
-   "@SP"
-   "A=M"
-   "M=D"
-   "@SP"
-   "M=M+1"])
-
-(defn pop-address [address]
-  ["@SP"
-   "A=M"
-   "D=M"
-   (str "@" address)
-   "M=D"
-   "@SP"
-   "M=M+1"])
-
 (defn eq! []
   (swap! loop-counter inc)
-  ["@SP"
+  ["//eq"
+   "@SP"
    "M=M-1"
    "A=M"
    "D=M"
@@ -154,7 +207,8 @@
 
 (defn gt! []
   (swap! loop-counter inc)
-  ["@SP"
+  ["//gt"
+   "@SP"
    "M=M-1"
    "A=M"
    "D=M"
@@ -175,7 +229,8 @@
 
 (defn lt! []
   (swap! loop-counter inc)
-  ["@SP"
+  ["//lt"
+   "@SP"
    "M=M-1"
    "A=M"
    "D=M"

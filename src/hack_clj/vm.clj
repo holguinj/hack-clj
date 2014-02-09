@@ -18,9 +18,6 @@
     (re-contains? vm re/c-call) :c-call
     :else (println "No matching command type for:" vm)))
 
-(defn argument [n ^String vm]
-  (nth (rest (re-seq #"\w+" vm)) n))
-
 (defmulti compile-instruction command-type)
 
 (defmethod compile-instruction :c-arithmetic [^String vm]
@@ -36,8 +33,10 @@
     (re-contains? vm re/c-not) lookup/not))
 
 (defmethod compile-instruction :c-push [^String vm]
-  (cond
-    (re-contains? vm re/c-push-constant) (lookup/push-constant (argument 1 vm))))
+  (lookup/compile-push vm))
+
+(defmethod compile-instruction :c-pop [^String vm]
+  (lookup/compile-pop vm))
 
 (defn vm-cleanup [^String vm]
   (clojure.string/replace vm #"\s*//.*" ""))
