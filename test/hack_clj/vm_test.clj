@@ -20,3 +20,15 @@
     (is (= :c-return (command-type "return"))))
   (testing "should output :c-call for call"
     (is (= :c-call (command-type "call")))))
+
+(deftest test-compile-instruction
+  (testing "compile push constant 10"
+    (let [correct-output ["//push constant 10" 
+                          "@10" 
+                          "D=A" 
+                          "@SP" 
+                          "A=M" 
+                          "M=D" 
+                          "@SP" 
+                          "M=M+1"]]
+       (is (= correct-output (compile-instruction "push constant 10"))))))
