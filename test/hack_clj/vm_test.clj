@@ -31,4 +31,13 @@
                           "M=D" 
                           "@SP" 
                           "M=M+1"]]
-       (is (= correct-output (compile-instruction "push constant 10"))))))
+       (is (= correct-output (compile-instruction "push constant 10")))))
+  (testing "compile pop local 2"
+    (let [correct-output ["//pop local 2" "@SP" 
+                          "M=M-1" "@1" 
+                          "D=M" "@2" 
+                          "D=D+A" "@R13" 
+                          "M=D" "@SP" 
+                          "A=M" "D=M" 
+                          "@R13" "A=M" "M=D"]]
+       (is (= correct-output (compile-instruction "pop local 2"))))))
