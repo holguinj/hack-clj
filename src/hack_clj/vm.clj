@@ -30,9 +30,9 @@
     (re-contains? vm re/c-eq) (lookup/eq!)
     (re-contains? vm re/c-lt) (lookup/lt!)
     (re-contains? vm re/c-gt) (lookup/gt!)
-    (re-contains? vm re/c-and) lookup/and
-    (re-contains? vm re/c-or) lookup/or
-    (re-contains? vm re/c-not) lookup/not))
+    (re-contains? vm re/c-and) lookup/c-and
+    (re-contains? vm re/c-or) lookup/c-or
+    (re-contains? vm re/c-not) lookup/c-not))
 
 (defmethod compile-instruction :c-push [^String vm]
   (lookup/compile-push vm))

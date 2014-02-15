@@ -140,7 +140,7 @@
     "@SP"
     "M=M+1"))
 
-(def and
+(def c-and
   '("//and"
     "@SP"
     "M=M-1"
@@ -161,7 +161,7 @@
     "@SP"
     "M=M+1"))
 
-(def not
+(def c-not
   '("//not"
     "@SP"
     "M=M-1"
@@ -170,7 +170,7 @@
     "@SP"
     "M=M+1"))
 
-(def or
+(def c-or
   '("//or"
     "@SP"
     "M=M-1"
