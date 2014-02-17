@@ -2,6 +2,7 @@
   (:require [hack-clj.util :refer :all]))
 
 (def loop-counter (atom 0))
+(def ret-counter (atom 0))
 
 (def base-pointer
   {"local" 1
@@ -269,3 +270,8 @@
      "D=M"
      (str "@" target)
      "D;JNE"]))
+
+(defn push-return []
+  (let [ret-addr (str "r" (swap! ret-counter inc))]
+    (conj (push-address ret-addr)
+          (str "(" ret-addr ")"))))

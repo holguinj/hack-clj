@@ -1,0 +1,37 @@
+* Calling function
+** push the return address onto the stack
+   tricky. or is it? how about ["@RETURN1" (push) "(RETURN1)"]
+** push as many arguments as necessary onto the stack
+   (for [i (range arguments)] (lookup/push))
+** caller invokes the function using the `call` command
+*** push return-address
+*** push [LCL, ARG, THIS, THAT]
+*** ARG = SP-n-5 //n is function arity
+    push SP ;(probably mostly assembly)
+    push n ;(ditto)
+    sub
+    push constant 5
+    sub
+*** LCL = SP
+    why not allocate some space for THIS and THAT?
+    - because we don't need to. we saved the old values,
+    so we can safely overwrite them now.
+    - the same could be said for LCL. mystery!
+*** goto f
+*** (return-address)
+
+* Called function
+*** static segment has to be set according to the vm file (class)
+*** zero local segment
+** execution
+   this is the easy part
+** return
+*** FRAME = LCL ;FRAME is a temporary variable
+*** RET = *(FRAME-5) ;put the return address in a temporary var
+*** *ARG = pop() ;reposition the return value for the caller
+*** SP = ARG+1 ;restore SP of the caller
+*** THAT = *(FRAME-1) ;restore THAT of the caller
+*** THIS = *(FRAME-2) ;restore THIS of the caller
+*** ARG = *(FRAME-3) ;restore ARG of the caller
+*** LCL = *(FRAME-4) ;restore LCL of the caller
+*** goto RET ;go to the return address
