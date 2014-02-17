@@ -275,3 +275,11 @@
   (let [ret-addr (str "r" (swap! ret-counter inc))]
     (conj (push-address ret-addr)
           (str "(" ret-addr ")"))))
+
+(defn push-pointers []
+  (flatten 
+    (conj 
+      (push-address "LCL")
+      (push-address "ARG")
+      (push-address "THIS")
+      (push-address "THAT"))))
