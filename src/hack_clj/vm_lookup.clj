@@ -272,14 +272,37 @@
      "D;JNE"]))
 
 (defn push-return []
+  "Push a new return address onto the stack.
+  Used for function calls."
   (let [ret-addr (str "r" (swap! ret-counter inc))]
     (conj (push-address ret-addr)
           (str "(" ret-addr ")"))))
 
 (defn push-pointers []
+  "Pushes LCL, ARG, THIS, and THAT to the stack,
+  effectively saving the state of the current frame."
   (flatten 
     (conj 
       (push-address "LCL")
       (push-address "ARG")
       (push-address "THIS")
       (push-address "THAT"))))
+
+(defn init-ARG [arity]
+  "Initialize the ARG pointer at the beginning of a function.
+  Equivalent to `ARG = SP - arity - 5`."
+  (flatten
+    (conj
+      (push-address "SP")
+      (push-address (str arity))
+      sub
+      (push-address "5")
+      sub)))
+
+(defn init-LCL []
+  "Initializes the LCL pointer at the beginning of a function.
+  Equivalent to `LCL = SP`."
+  (flatten
+    (conj 
+      (push-address "SP")
+      (pop-address "LCL"))))
