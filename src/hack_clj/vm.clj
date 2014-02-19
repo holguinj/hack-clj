@@ -49,6 +49,9 @@
 (defmethod compile-instruction :c-if [^String vm]
   (lookup/if-goto vm))
 
+(defmethod compile-instruction :c-return [_]
+  (lookup/return))
+
 (defn vm-cleanup [^String vm]
   (clojure.string/replace vm #"\s*//.*" ""))
 
