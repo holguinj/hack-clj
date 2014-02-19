@@ -285,12 +285,6 @@
      (str "@" target)
      "D;JNE"]))
 
-(defn push-return! []
-  "Push a new return address onto the stack.
-  Used for function calls."
-  (let [ret-addr (str "r" (swap! ret-counter inc))]
-    (conj (push-address ret-addr))))
-
 (defn push-pointers []
   "Pushes LCL, ARG, THIS, and THAT to the stack,
   effectively saving the state of the current frame."
@@ -320,15 +314,15 @@
 (defn call [^String vm]
   (let [f (argument 0 vm)
         arity (argument 1 vm)
-        ret-addr (str "r" @ret-counter)]
+        ret-addr (str "r" (swap! ret-counter inc))]
     (flatten
       [(str "//" vm)
-       (push-return!)
+       (push-address ret-addr)
        (push-pointers)
        (init-ARG arity)
        (init-LCL)
-       (goto (str "goto" f))
-       (str "(r" @ret-addr ")")])))
+       (goto (str "goto " f))
+       (str "(" ret-addr ")")])))
 
 (defn return []
   "Return the value on top of the stack and resume execution
