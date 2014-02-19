@@ -14,6 +14,19 @@
    "static" 16})
 
 (defn push-address [address]
+  "Pushes the given value onto the stack.
+  Given a variable, pushes the variable's address."
+  [(str "@" value)
+   "D=A"
+   "@SP"
+   "A=M"
+   "M=D"
+   "@SP"
+   "M=M+1"])
+
+(defn push-memory [address]
+  "Pushes the memory at the given location onto the stack.
+  Given a variable, pushes the variable's value."
   [(str "@" address)
    "D=M"
    "@SP"
@@ -23,6 +36,7 @@
    "M=M+1"])
 
 (defn pop-address [address]
+  "Pops the top of the stack to the named memory address"
   ["@SP"
    "M=M-1"
    "A=M"
@@ -49,7 +63,7 @@
   (let [base (base-pointer "temp")
         offset (Integer. (argument 1 vm))
         address (+ base offset)]
-    (push-address address)))
+    (push-memory address)))
 
 (defmethod compile-pop "temp" [^String vm]
   (let [base (base-pointer "temp")
@@ -61,7 +75,7 @@
   (let [base (base-pointer "pointer")
         offset (Integer. (argument 1 vm))
         address (+ base offset)]
-    (push-address address)))
+    (push-memory address)))
 
 (defmethod compile-pop "pointer" [^String vm]
   (let [base (base-pointer "pointer")
@@ -283,17 +297,17 @@
   effectively saving the state of the current frame."
   (flatten 
     (conj 
-      (push-address "LCL")
-      (push-address "ARG")
-      (push-address "THIS")
-      (push-address "THAT"))))
+      (push-memory "LCL")
+      (push-memory "ARG")
+      (push-memory "THIS")
+      (push-memory "THAT"))))
 
 (defn init-ARG [arity]
   "Initialize the ARG pointer at the beginning of a function.
   Equivalent to `ARG = SP - arity - 5`."
   (flatten
     (conj
-      (push-address "SP")
+      (push-memory "SP")
       (push-address (str arity))
       sub
       (push-address "5")
@@ -304,5 +318,48 @@
   Equivalent to `LCL = SP`."
   (flatten
     (conj 
-      (push-address "SP")
+      (push-memory "SP")
       (pop-address "LCL"))))
+
+(defn return []
+  "Return the value on top of the stack and resume execution
+  of the calling function."
+  (flatten
+    (conj
+      ;FRAME = LCL //FRAME is a temp var
+      (push-address "FRAME")
+      (pop-address "LCL")
+      ;RET = *(FRAME - 5) //put the return address in a temp var
+      (push-address "FRAME") 
+      (push-address "5")
+      sub
+      (pop-address "RET")
+      ;*ARG = pop() //reposition the return value for the caller
+      (pop-address "ARG")
+      ;SP = ARG+1 //restore the SP of the caller
+      (push-address "ARG")
+      (push-address "1")
+      add
+      (pop-address "SP")
+      ;THAT = *(FRAME-1) //restore THAT of the caller
+      (push-address "FRAME")
+      (push-address "1")
+      sub
+      (pop-address "THAT")
+      ;THIS = *(FRAME-2) //restore THIS of the caller
+      (push-address "FRAME")
+      (push-address "2")
+      sub
+      (pop-address "THIS")
+      ;ARG = *(FRAME-3) //restore ARG of the caller
+      (push-address "FRAME")
+      (push-address "3")
+      sub
+      (pop-address "ARG")
+      ;LCL = *(FRAME-4) //restore LCL of the caller
+      (push-address "FRAME")
+      (push-address "4")
+      sub
+      (pop-address "LCL")
+      ;goto RET //go to the return address
+      (goto "goto RET"))))
