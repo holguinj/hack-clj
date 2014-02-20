@@ -127,6 +127,16 @@
     "D=A"
     "@SP"
     "M=D"
+    "//kind of guessing here"
+    "@300"
+    "D=A"
+    "@LCL"
+    "M=D"
+    "@400"
+    "D=A"
+    "@ARG"
+    "M=D"
+    "//start Sys.init"
     "@Sys.init"
     "0;JMP"))
 
