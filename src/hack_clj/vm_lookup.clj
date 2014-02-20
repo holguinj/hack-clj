@@ -3,6 +3,7 @@
 
 (def loop-counter (atom 0))
 (def ret-counter (atom 0))
+(def class-name (atom ""))
 
 (def base-pointer
   {"local" 1
@@ -125,7 +126,9 @@
     "@256"
     "D=A"
     "@SP"
-    "M=D"))
+    "M=D"
+    "@Sys.init"
+    "0;JMP"))
 
 (def add
   '("//add"

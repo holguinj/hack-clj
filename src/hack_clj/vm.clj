@@ -52,19 +52,30 @@
 (defmethod compile-instruction :c-function [^String vm]
   (lookup/function vm))
 
+(defmethod compile-instruction :c-call [^String vm]
+  (lookup/call vm))
+
 (defmethod compile-instruction :c-return [_]
   (lookup/return))
 
 (defn vm-cleanup [^String vm]
   (clojure.string/replace vm #"\s*//.*" ""))
 
-(defn compile-vm
-  [^String code fout]
-  (spit fout
-    (->> code
+(defn compile-code [^String code]
+  (->> code
        (map vm-cleanup)
        (filter (complement clojure.string/blank?))
-       (map clojure.string/lower-case)
+       ;(map clojure.string/lower-case)
        (map compile-instruction)
        (map (partial clojure.string/join "\n"))
-       (clojure.string/join "\n"))))
+       (clojure.string/join "\n")))
+
+(defn file->asm [^java.io.File file]
+  (let [path (.getAbsolutePath file)]
+    (with-open [rdr (clojure.java.io/reader path)]
+      (println "File path: " path) 
+      (compile-code (line-seq rdr)))))
+
+(defn compile-vm [^String code fout]
+  (spit fout
+        (compile-code code))) 
