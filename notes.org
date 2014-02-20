@@ -2,7 +2,6 @@
 ** push the return address onto the stack
    tricky. or is it? how about ["@RETURN1" (push) "(RETURN1)"]
 ** push as many arguments as necessary onto the stack
-   (for [i (range arguments)] (lookup/push))
 ** caller invokes the function using the `call` command
 *** push return-address
 *** push [LCL, ARG, THIS, THAT]
