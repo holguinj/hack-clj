@@ -48,6 +48,18 @@
    (str "@" address)
    "M=D"])
 
+(defn pop-memory [address]
+  "Pops the top of the stack to the memory pointed to by the
+  named memory address. Very rarely needed."
+  [(str "//pop-memory " address)
+   "@SP"
+   "M=M-1"
+   "A=M"
+   "D=M"
+   (str "@" address)
+   "A=M"
+   "M=D"])
+
 (defmulti compile-push (partial argument 0))
 
 (defmulti compile-pop (partial argument 0))
@@ -357,13 +369,16 @@
     [;FRAME = LCL //FRAME is a temp var
      (push-memory "LCL")
      (pop-address "FRAME")
-     ;RET = *(FRAME - 5) //put the return address in a temp var
+     ;RET = *(FRAME - 5) //put the return ADDRESS in a temp var
      (push-memory "FRAME") 
      (push-address "5")
      sub
+     ;I have a pointer on the stack, want the
+     ;value in memory that it points to
+     ["@SP" "M=M-1" "A=M" "A=M" "D=M" "@SP" "A=M" "M=D" "@SP" "M=M+1"]
      (pop-address "RET")
      ;*ARG = pop() //reposition the return value for the caller
-     (pop-address "ARG")
+     (pop-memory "ARG")
      ;SP = ARG+1 //restore the SP of the caller
      (push-memory "ARG")
      (push-address "1")
