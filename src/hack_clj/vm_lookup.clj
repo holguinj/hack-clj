@@ -344,9 +344,11 @@
 
 (defn function [^String vm]
   (let [function-name (argument 0 vm)
-        arity         (argument 1 vm)]
-    ;set the static segment (unimplemented)
-    [(str "(" function-name ")")]))
+        locals        (Integer. (argument 1 vm))]
+    (flatten 
+      [(str "//function " function-name " " locals)
+       (str "(" function-name ")")
+       (repeat locals (push-address "0"))])))
 
 (defn return []
   "Return the value on top of the stack and resume execution
