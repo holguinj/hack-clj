@@ -130,12 +130,13 @@
     "D=A"
     "@SP"
     "M=D"
-    "//kind of guessing here"
-    "@256" ;I had made this 300, but that doesn't make sense
+    "//Set LCL to 256"
+    "@256"
     "D=A"
     "@LCL"
     "M=D"
-    "@400"
+    "//Set ARG to 256"
+    "@256"
     "D=A"
     "@ARG"
     "M=D"
@@ -318,7 +319,8 @@
      (push-address (str arity))
      sub
      (push-address "5")
-     sub]))
+     sub
+     (pop-address "ARG")]))
 
 (defn init-LCL []
   "Initializes the LCL pointer at the beginning of a function.
