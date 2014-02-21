@@ -17,7 +17,8 @@
 (defn push-address [address]
   "Pushes the given value onto the stack.
   Given a variable, pushes the variable's address."
-  [(str "@" address)
+  [(str "//push-address " address)
+   (str "@" address)
    "D=A"
    "@SP"
    "A=M"
@@ -28,7 +29,8 @@
 (defn push-memory [address]
   "Pushes the memory at the given location onto the stack.
   Given a variable, pushes the variable's value."
-  [(str "@" address)
+  [(str "//push-memory " address)
+   (str "@" address)
    "D=M"
    "@SP"
    "A=M"
@@ -38,7 +40,8 @@
 
 (defn pop-address [address]
   "Pops the top of the stack to the named memory address"
-  ["@SP"
+  [(str "//pop-address " address)
+   "@SP"
    "M=M-1"
    "A=M"
    "D=M"
@@ -128,7 +131,7 @@
     "@SP"
     "M=D"
     "//kind of guessing here"
-    "@300"
+    "@256" ;I had made this 300, but that doesn't make sense
     "D=A"
     "@LCL"
     "M=D"
@@ -348,37 +351,37 @@
   of the calling function."
   (flatten
     [;FRAME = LCL //FRAME is a temp var
-     (push-address "FRAME")
-     (pop-address "LCL")
+     (push-memory "LCL")
+     (pop-address "FRAME")
      ;RET = *(FRAME - 5) //put the return address in a temp var
-     (push-address "FRAME") 
+     (push-memory "FRAME") 
      (push-address "5")
      sub
      (pop-address "RET")
      ;*ARG = pop() //reposition the return value for the caller
      (pop-address "ARG")
      ;SP = ARG+1 //restore the SP of the caller
-     (push-address "ARG")
+     (push-memory "ARG")
      (push-address "1")
      add
      (pop-address "SP")
      ;THAT = *(FRAME-1) //restore THAT of the caller
-     (push-address "FRAME")
+     (push-memory "FRAME")
      (push-address "1")
      sub
      (pop-address "THAT")
      ;THIS = *(FRAME-2) //restore THIS of the caller
-     (push-address "FRAME")
+     (push-memory "FRAME")
      (push-address "2")
      sub
      (pop-address "THIS")
      ;ARG = *(FRAME-3) //restore ARG of the caller
-     (push-address "FRAME")
+     (push-memory "FRAME")
      (push-address "3")
      sub
      (pop-address "ARG")
      ;LCL = *(FRAME-4) //restore LCL of the caller
-     (push-address "FRAME")
+     (push-memory "FRAME")
      (push-address "4")
      sub
      (pop-address "LCL")
