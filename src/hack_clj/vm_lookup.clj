@@ -6,11 +6,11 @@
 (def class-name (atom ""))
 
 (def base-pointer
-  {"local" 1
-   "argument" 2
+  {"local" "LCL" 
+   "argument" "ARG" 
    "pointer" 3
-   "this" 3
-   "that" 4
+   "this" "THIS" 
+   "that" "THAT"
    "temp" 5
    "static" 16})
 
@@ -135,26 +135,6 @@
        "@R13"
        "A=M"
        "M=D"]))
-
-(def init 
-  '("//Init"
-    "@256"
-    "D=A"
-    "@SP"
-    "M=D"
-    "//Set LCL to 256"
-    "@256"
-    "D=A"
-    "@LCL"
-    "M=D"
-    "//Set ARG to 256"
-    "@256"
-    "D=A"
-    "@ARG"
-    "M=D"
-    "//start Sys.init"
-    "@Sys.init"
-    "0;JMP"))
 
 (def add
   '("//add"
@@ -326,20 +306,22 @@
 (defn init-ARG [arity]
   "Initialize the ARG pointer at the beginning of a function.
   Equivalent to `ARG = SP - arity - 5`."
-  (flatten
-    [(push-memory "SP")
-     (push-address (str arity))
-     sub
-     (push-address "5")
-     sub
-     (pop-address "ARG")]))
+  ["@SP"
+   "D=M"
+   (str "@" arity)
+   "D=D-A"
+   "@5"
+   "D=D-A"
+   "@ARG"
+   "M=D"])
 
 (defn init-LCL []
   "Initializes the LCL pointer at the beginning of a function.
   Equivalent to `LCL = SP`."
-  (flatten
-    [(push-memory "SP")
-     (pop-address "LCL")]))
+  ["@SP"
+   "D=M"
+   "@LCL"
+   "M=D"])
 
 (defn call [^String vm]
   (let [f (argument 0 vm)
@@ -347,10 +329,15 @@
         ret-addr (str "r" (swap! ret-counter inc))]
     (flatten
       [(str "//" vm)
-       (push-address ret-addr)
+       "//push return address"
+       (push-address ret-addr) ;address because variables aren't real
+       "//push pointers"
        (push-pointers)
+       (str "//init arg " arity)
        (init-ARG arity)
+       "//init LCL"
        (init-LCL)
+       (str "//goto " f)
        (goto (str "goto " f))
        (str "(" ret-addr ")")])))
 
@@ -360,18 +347,22 @@
     (flatten 
       [(str "//function " function-name " " locals)
        (str "(" function-name ")")
+       (str "//push 0 " locals " times")
        (repeat locals (push-address "0"))])))
 
 (defn return []
   "Return the value on top of the stack and resume execution
   of the calling function."
   (flatten
-     [;FRAME = LCL //FRAME is a temp var 
+     ["//return"
+      ;FRAME = LCL //FRAME is a temp var 
+      "//FRAME = LCL"
       "@LCL"
       "D=M"
       "@FRAME"
       "M=D"
       ;RET = *(FRAME - 5) //put the return ADDRESS in a temp var
+      "//RET = *(FRAME - 5)"
       "@FRAME"
       "D=M"
       "@5"
@@ -381,6 +372,7 @@
       "@RET"
       "M=D"
       ;*ARG = pop() //reposition the return value for the caller
+      "//*ARG = pop()"
       "@SP"
       "M=M-1"
       "A=M"
@@ -389,17 +381,20 @@
       "A=M"
       "M=D"
       ;SP = ARG+1 //restore the SP of the caller
+      "//SP = ARG + 1"
       "@ARG"
-      "D=A+1"
+      "D=M+1"
       "@SP"
       "M=D"
       ;THAT = *(FRAME-1) //restore THAT of the caller
+      "//THAT = *(FRAME - 1)"
       "@FRAME"
       "A=M-1"
       "D=M"
       "@THAT"
       "M=D"
       ;THIS = *(FRAME-2) //restore THIS of the caller
+      "//THIS = *(FRAME - 2)"
       "@FRAME"
       "D=M"
       "@2"
@@ -408,6 +403,7 @@
       "@THIS"
       "M=D"
       ;ARG = *(FRAME-3) //restore ARG of the caller
+      "//ARG = *(FRAME - 3)"
       "@FRAME"
       "D=M"
       "@3"
@@ -416,6 +412,7 @@
       "@ARG"
       "M=D"
       ;LCL = *(FRAME-4) //restore LCL of the caller
+      "//LCL = *(FRAME-4)"
       "@FRAME"
       "D=M"
       "@4"
@@ -425,3 +422,33 @@
       "M=D"
       ;goto RET //go to the return address
       (goto "goto RET")]))
+
+(def init 
+  (flatten  
+    ["//Init"
+     "@256"
+     "D=A"
+     "@SP"
+     "M=D"
+     "//Set LCL to -1"
+     "@0"
+     "D=!A"
+     "@LCL"
+     "M=D"
+     "//Set ARG to -1"
+     "@0"
+     "D=!A"
+     "@ARG"
+     "M=D"
+     "//Set THIS to -1"
+     "@0"
+     "D=!A"
+     "@THIS"
+     "M=D"
+     "//Set THAT to -1"
+     "@0"
+     "D=!A"
+     "@THAT"
+     "M=D"
+     "//start Sys.init"
+     (call "call Sys.init 0")]))
