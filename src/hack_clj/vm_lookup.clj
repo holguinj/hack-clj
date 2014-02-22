@@ -4,6 +4,12 @@
 (def loop-counter (atom 0))
 (def ret-counter (atom 0))
 (def class-name (atom ""))
+(def current-function (atom nil))
+
+(defn qualify-label [label]
+  (if @current-function
+    (str @current-function "$" label)
+    label))
 
 (def base-pointer
   {"local" "LCL" 
@@ -274,24 +280,27 @@
    "M=M+1"])
 
 (defn label [^String vm]
-  (let [target (argument 0 vm)]
+  (let [target (argument 0 vm)
+        qualified-name (qualify-label target)]
     [(str "//label " target)
-     (str "(" target ")")]))
+     (str "(" qualified-name ")")]))
 
 (defn goto [^String vm]
-  (let [target (argument 0 vm)]
+  (let [target (argument 0 vm)
+        qualified-name  (qualify-label target)]
     [(str "//goto " target)
-     (str "@" target)
+     (str "@" qualified-name)
      "0;JMP"]))
 
 (defn if-goto [^String vm]
-  (let [target (argument 0 vm)]
+  (let [target (argument 0 vm)
+        qualified-name  (qualify-label target)]
     [(str "//if-goto " target)
      "@SP"
      "M=M-1"
      "A=M"
      "D=M"
-     (str "@" target)
+     (str "@" qualified-name)
      "D;JNE"]))
 
 (defn push-pointers []
@@ -338,12 +347,14 @@
        "//init LCL"
        (init-LCL)
        (str "//goto " f)
-       (goto (str "goto " f))
+       (str "@" f)
+       "0;JMP"
        (str "(" ret-addr ")")])))
 
 (defn function [^String vm]
   (let [function-name (argument 0 vm)
         locals        (Integer. (argument 1 vm))]
+    (reset! current-function function-name)
     (flatten 
       [(str "//function " function-name " " locals)
        (str "(" function-name ")")
@@ -353,6 +364,7 @@
 (defn return []
   "Return the value on top of the stack and resume execution
   of the calling function."
+  (reset! current-function nil)
   (flatten
      ["//return"
       ;FRAME = LCL //FRAME is a temp var 
