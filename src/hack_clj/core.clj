@@ -109,13 +109,15 @@
   (-> asm
       (clojure.string/replace #"\s" "")
       (clojure.string/replace #"//\S*" "")
-      (clojure.string/upper-case)))
+      ;(clojure.string/upper-case)
+      ))
 
 (defn hack-compile
   "Given a line of pure assembly code, compiles it as either an A-instruction or a C-instruction"
   [^String asm]
   {:pre [(false? (clojure.string/blank? asm))]
    :post [(= 16 (.length %))]}
+  ;(println asm) ;DEBUG
   (if (or (a-instruction? asm) (a-var? asm)) 
       (compile-a-instruction asm)
       (compile-c-instruction asm)))
