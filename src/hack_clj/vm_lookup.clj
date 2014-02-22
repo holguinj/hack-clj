@@ -421,7 +421,10 @@
       "@LCL"
       "M=D"
       ;goto RET //go to the return address
-      (goto "goto RET")]))
+      "//goto RET"
+      "@RET"
+      "A=M"
+      "0;JMP"]))
 
 (def init 
   (flatten  
