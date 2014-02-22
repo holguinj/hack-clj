@@ -71,9 +71,12 @@
        (clojure.string/join "\n")))
 
 (defn file->asm [^java.io.File file]
-  (let [path (.getAbsolutePath file)]
+  (let [path (.getAbsolutePath file)
+        filename (.getName file)
+        class-name (clojure.string/replace filename ".vm" "")]
     (with-open [rdr (clojure.java.io/reader path)]
-      (println "File path: " path) 
+      (println "File path: " path "as class" class-name) 
+      (reset! lookup/class-name class-name)
       (compile-code (line-seq rdr)))))
 
 (defn compile-vm [^String code fout]
