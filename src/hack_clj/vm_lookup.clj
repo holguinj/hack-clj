@@ -105,6 +105,16 @@
         address (+ base offset)]
     (pop-address address)))
 
+(defmethod compile-push "static" [^String vm]
+  (let [static-id (argument 1 vm)
+        static-address (str @class-name "." static-id)]
+    (push-memory static-address)))
+
+(defmethod compile-pop "static" [^String vm]
+  (let [static-id (argument 1 vm)
+        static-address (str @class-name "." static-id)]
+    (pop-address static-address)))
+
 (defmethod compile-push :default [^String vm]
   (let [segment (argument 0 vm)
         offset (Integer. (argument 1 vm))
