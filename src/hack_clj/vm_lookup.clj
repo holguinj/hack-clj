@@ -364,7 +364,9 @@
 (defn return []
   "Return the value on top of the stack and resume execution
   of the calling function."
-  (reset! current-function nil)
+  ;(reset! current-function nil) ;TODO check this more carefully.
+  ;uncommenting will break things, but I might need to implement
+  ;a more careful version.
   (flatten
      ["//return"
       ;FRAME = LCL //FRAME is a temp var 
