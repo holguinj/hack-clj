@@ -124,7 +124,9 @@
    (doall 
      (for [line code] 
        (if (target? line) 
-           (do (varify! line @line-number))
+           (do 
+             (println "Loop target:" line "at" @line-number)
+             (varify! line @line-number))
            (swap! line-number inc))))
    (doall 
      (for [line code]
