@@ -106,8 +106,7 @@
   [^String asm]
   (-> asm
       (clojure.string/replace #"\s" "")
-      (clojure.string/replace #"\s*//\S*" "")
-      (clojure.string/upper-case)))
+      (clojure.string/replace #"\s*//\S*" "")))
 
 (defn hack-compile
   "Given a line of pure assembly code, compiles it as either an A-instruction or a C-instruction"
