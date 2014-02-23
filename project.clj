@@ -1,4 +1,4 @@
-(defproject hack-clj "0.7.0-SNAPSHOT"
+(defproject hack-clj "0.8.0-SNAPSHOT"
   :description "An assembler and compiler for the Hack platform"
   :url "http://blog.postpunkjustin.com"
   :main hack-clj.core
