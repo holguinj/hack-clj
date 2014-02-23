@@ -102,7 +102,7 @@
        (get-jump asm)))
 
 (defn cleanup 
-  "Given a program line, removes whitespace and comments, then uppercases the result."
+  "Given a program line, removes whitespace and comments."
   [^String asm]
   (-> asm
       (clojure.string/replace #"\s" "")
@@ -119,13 +119,16 @@
 
 (defn parse-vars 
   "Should be executed before compilation to build the var-table"
-  [code]
-  (let [line-number (atom 0)]
+  [input]
+  (let [line-number (atom 0)
+        code (->> input
+                  (map cleanup)
+                  (filter (complement clojure.string/blank?)))]
    (doall 
      (for [line code] 
        (if (target? line) 
            (do 
-             (println "Loop target:" line "at" @line-number)
+             ;(println "Loop target:" line "at" @line-number)
              (varify! line @line-number))
            (swap! line-number inc))))
    (doall 
