@@ -34,7 +34,7 @@
        (is (= correct-output (compile-instruction "push constant 10")))))
   (testing "compile pop local 2"
     (let [correct-output ["//pop local 2" "@SP" 
-                          "M=M-1" "@1" 
+                          "M=M-1" "@LCL" 
                           "D=M" "@2" 
                           "D=D+A" "@R13" 
                           "M=D" "@SP" 
