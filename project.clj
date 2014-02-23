@@ -1,5 +1,5 @@
-(defproject hack-clj "0.1.0-SNAPSHOT"
-  :description "An assembler for the Hack platform"
+(defproject hack-clj "0.7.0-SNAPSHOT"
+  :description "An assembler and compiler for the Hack platform"
   :url "http://blog.postpunkjustin.com"
   :main hack-clj.core
   :license {:name "Eclipse Public License"

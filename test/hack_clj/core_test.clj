@@ -1,5 +1,6 @@
 (ns hack-clj.core-test
-  (:require [clojure.test :refer :all]
+  (:require [hack-clj.asm :refer :all]
+            [clojure.test :refer :all]
             [hack-clj.lookup :refer :all]
             [hack-clj.core :refer :all]))
 

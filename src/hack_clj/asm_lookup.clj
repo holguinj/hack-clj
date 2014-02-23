@@ -1,4 +1,4 @@
-(ns hack-clj.lookup)
+(ns hack-clj.asm-lookup)
 
 (def lookup-comp
   { "0"   "0101010"    "1"   "0111111"
