@@ -4,15 +4,17 @@
             [hack-clj.vm :refer :all]
             [hack-clj.util :refer :all]
             [hack-clj.vm-lookup :as lookup]
+            [hack-clj.jack :as jack]
             [clojure.java.io :as io]))
 
 (defn fout-name 
   "Given a filename from the command line, replace '.vm' with '.asm'
-  or replace '.asm' with '.hack'."
+  or replace '.asm' with '.hack', or replace '.jack' with '.vm'"
   [^String fin]
   (cond 
     (.contains fin ".asm") (clojure.string/replace fin ".asm" ".hack")
-    (.contains fin ".vm") (clojure.string/replace fin ".vm" ".asm")))
+    (.contains fin ".vm") (clojure.string/replace fin ".vm" ".asm")
+    (.contains fin ".jack") (clojure.string/replace fin ".jack" ".vm")))
 
 (defn compile-file
   "Reads a filename from standard input and compiles that file."
@@ -54,4 +56,5 @@
   (cond
     (.contains input ".asm") (compile-file input)
     (.contains input ".vm") (compile-file input)
+    (.contains input ".jack") (jack/compile-file input)
     :else (compile-directory input)))

@@ -1,7 +1,8 @@
-(defproject hack-clj "0.8.0-SNAPSHOT"
+(defproject hack-clj "0.10.0-SNAPSHOT"
   :description "An assembler and compiler for the Hack platform"
   :url "http://blog.postpunkjustin.com"
   :main hack-clj.core
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
-  :dependencies [[org.clojure/clojure "1.5.1"]])
+  :dependencies [[org.clojure/clojure "1.5.1"]
+                 [instaparse "1.2.16"]])

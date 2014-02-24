@@ -1,0 +1,24 @@
+S = class | function | statement
+class = <'class'> (space)* Name (space)* <'{'> (space* function*)* <'}'> space?
+function = <'function'> (space)* type (space)* name space? <'('> parameters  <')'> space? codeblock
+parameters = (<','>? parameter)* space*
+codeblock = <'{'> space? (statement space?)* space? <'}'> space?
+parameter = space? type space+ name
+arguments = <'('> (space? value space?)*  <')'>
+value = space? #'[a-zA-Z0-9]+' space?
+variable = type space name space? assignment? 
+assignment = space? <'='> space? value space?
+expression = space? name (operator value)? space? terminator
+operator = '+' | '-' | '/' | '*' | '=' 
+type = 'int' | 'void' | 'char'
+Name = #'[A-Z][a-zA-Z0-9_]*'
+name = #'[a-z][a-zA-Z0-9_]*'
+statement = do | let | var | return
+do = <'do'> space+ name arguments space? terminator
+let = <'let'> space+ name assignment terminator
+var = <'var'> space+ type space+ name space? terminator
+return = <'return'> value* terminator
+command = #'[a-z]+'
+argument = #'[a-zA-Z0-9]+'
+<space> = <#'\s+'>
+<terminator> = <';'>
