@@ -1,6 +1,6 @@
 (ns hack-clj.jack
-  (:require [instaparse.core :as insta])
-  (:require [clojure.contrib.lazy-xml :as xml]))
+  (:require [instaparse.core :as insta]
+            [clojure.data.xml :as xml]))
 
 (def jack-parser
   (insta/parser
@@ -20,4 +20,4 @@
       (jack-eval)
       (println)))
 
-(clojure.contrib.lazy-xml/emit {:tag :arguments :content {:tag :variable :content [{:tag :type :content :int} {:tag :var :content :x}]}})
+
