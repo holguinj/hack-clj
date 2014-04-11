@@ -1,6 +1,5 @@
 (ns hack-clj.jack-lexer
-  (:require [clojure.data.xml :as xml]
-            [clojure.string :as s]))
+  (:require [clojure.string :as s]))
 
 (defn- escape [s]
   (-> s
