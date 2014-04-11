@@ -4,7 +4,7 @@
 
 (defn- escape [s]
   (-> s
-      (s/replace "&" "&amp;")  
+      (s/replace "&" "&amp;")
       (s/replace "<" "&lt;")
       (s/replace ">" "&gt;")))
 
@@ -49,13 +49,14 @@
     (jack-string? w) "stringConstant"))
 
 (defn split-input [s]
+  "This uses some gnarly regex to split the input string into tokens."
   (re-seq
     #"[\{\}\(\)\[\]\.\,;\+_\*\/\&\|<>\=\-\"]|[0-9a-zA-Z_]+"
     s))
 
 
 (defn xml-string [w]
-  (let [tag (identify w)]
+  (let [tag (token-type w)]
     (str "<" tag "> "
          (escape w)
          " </" tag ">")))
@@ -63,7 +64,7 @@
 (defn tokenize [filename]
   (let [fin (-> filename (slurp) (strip-comments) (split-input))
         fout-name (s/replace filename ".jack" ".xml")]
-    (spit fout-name 
+    (spit fout-name
           (str "<tokens>\n"
                (s/join "\n" (map xml-string fin))
                "\n</tokens>\n"))))
