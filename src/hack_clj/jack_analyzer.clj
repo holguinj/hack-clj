@@ -19,6 +19,11 @@
        (second)
        (keyword)))
 
+(def nonterminal
+  #{:class :class-var-dec :subroutine-dec :parameter-list
+    :subroutine-body :var-dec :statements :while-statement :if-statement
+    :return-statement :let-statement :do-statement})
+
 (defn token-value
   "Given a line of XML (from the lexer), return
   the value between the open and close tags."
@@ -28,26 +33,32 @@
        (second)
        (keyword)))
 
-(defn fresh-state []
+(defn new-state
   "Returns a map with blank atomic lists to be used
   as stacks during recursive descent."
+  []
   {:paren (atom ())
    :brace (atom ())})
 
-(defn dig-in [state punctuation tag-type]
+(defn dig-in
   "Given a state map, punctuation (:paren or :brace)
   and the tag-type (e.g., classDec), push the tag onto
   the appropriate stack and return the opening XML for
   the tag."
+  [state punctuation tag-type]
   (swap! (state punctuation) conj tag-type)
-  (str "<" tag-type ">"))
+  (str "<" (name tag-type) ">"))
 
-(defn back-out [state punctuation]
+(defn back-out
   "The inverse of dig-in. Takes a state map and punctuation
   (presumably closing) and pops the tag from the corresponding
   stack. Returns the closing XML for the tag."
+  [state punctuation]
   (let [tag-type (first @(state punctuation))]
-    (swap! (state punctuation) rest)
-    (str "</" tag-type ">")))
+    (try
+      (swap! (state punctuation) rest)
+      (catch NullPointerException e
+        "back-out called in an invalid state."))
+    (str "</" (name tag-type) ">")))
 
 (defmulti compile-nonterminal token-value)

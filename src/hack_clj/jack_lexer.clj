@@ -47,14 +47,17 @@
     (jack-identifier? w) "identifier"
     (jack-string? w) "stringConstant"))
 
-(defn split-input [s]
+(defn split-input
   "This uses some gnarly regex to split the input string into tokens."
+  [s]
   (re-seq
-    #"[\{\}\(\)\[\]\.\,;\+_\*\/\&\|<>\=\-\"]|[0-9a-zA-Z_]+"
-    s))
+   #"[\{\}\(\)\[\]\.\,;\+_\*\/\&\|<>\=\-\"]|[0-9a-zA-Z_]+"
+   s))
 
 
-(defn xml-string [w]
+(defn xml-string
+  "Identifies the token type of w and wraps it in an XML entity."
+  [w]
   (let [tag (token-type w)]
     (str "<" tag "> "
          (escape w)
