@@ -2,7 +2,13 @@
   (:require [hack-clj.jack-lexer :as lexer]))
 
 
-;; IDEA: two functions-- dig-in and back-out
+;; IDEA: Keep the whole (tokenized) program in a stack.
+;; swap!-rest the stack when compiling a token, that way
+;; we can navigate down during recursive descent and the
+;; compiler will pick up at the right spot when those
+;; functions return. Complementary with the next idea.
+
+;; IDEA (DONE): two functions-- dig-in and back-out
 ;; they take :paren, :bracket, or :quote
 ;; each of the three has a mutable stack
 ;; (maybe not for :quote, but notionally yes)
@@ -61,4 +67,8 @@
         "back-out called in an invalid state."))
     (str "</" (name tag-type) ">")))
 
-(defmulti compile-nonterminal token-value)
+(defmulti compile-nonterminal (juxt token-type token-value))
+
+(defmethod compile-nonterminal [:keyword :class]
+  (println "Got a class thingy!")
+  )
