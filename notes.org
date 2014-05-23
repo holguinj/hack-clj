@@ -1,0 +1,76 @@
+* Compiling nonterminals
+Ok, tricky situation. Apparently.
+Let's look at some common nonterminals:
+  - class
+  - function
+
+Each one is introduced by a keyword. Here's a sample transformation:
+
+  <keyword> class </keyword>
+
+  ->BECOMES->
+
+  <class>
+    <keyword> class </keyword>
+
+** Nonterminal stacks
+Obviously that's not all. Classes are demarcated by {}. But they can contain
+inner blocks (probably functions) that are also demarcated by {}, so we need
+to track where we are in a stack (blocks are FILO).
+
+When we emit <class>, the next "{" bracket we output will be the beginning of
+the class block. We can conj "class" onto the `bracket` stack:
+
+  <class> -> {:bracket '(:class)}
+
+Next, we'll probably come across a function. So we'll do something like this:
+
+  <keyword> function </keyword>
+
+  ->BECOMES->
+
+  <subroutineDec>
+    <keyword> function </keyword>
+
+and conj :subroutineDec to our bracket stack:
+
+  <subroutineDec> -> {:bracket '(:subroutineDec :class)}
+
+A few lines or so later, we reach a "}":
+
+  <symbol> } </symbol>
+
+Time to pop the stack and emit a closing tag for whatever pops out:
+
+  {:bracket '(:subroutineDec :class)} -> :subroutineDec
+  emit </subroutineDec>, state := {:bracket '(:class)}
+
+The next time we come across "}", it must mean we're closing out the class:
+
+  {:bracket '(:class)} -> :class
+  emit </class>, state := {:bracket '()}
+
+** Track open punctuation or not?
+Interesting question: should we bother to even notice "{"? Right now the answer
+seems to be "no." There's nothing to even do with it now other than emit
+the XML straight out of the tokenizer. But that's just because classes are
+sort of funny like that.
+
+Functions are much more particular. They have a <parameterList> intervening
+between the "function" keyword and the <subroutineBody>. You can't emit the
+<subroutineBody> tag until just before the "{".
+
+** Linting
+It would be interesting to write a basic linter to check for any glaring
+syntax errors early on. Well, it would be interesting if I could figure out a
+way to express the syntactic restrictions declaratively, maybe something like:
+
+  {[:keyword :class] [[:identifier] [:symbol "{"]]}
+  "a class keyword must be followed by an identifier, then a '{' symbol"
+
+Just spitballing.
+
+** Other nonterminals and their demarcators
+
+<keyword> var </keyword> ... <symbol> ; </symbol>
+<varDec> ^ </varDec>
