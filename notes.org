@@ -51,6 +51,14 @@ The next time we come across "}", it must mean we're closing out the class:
   {:bracket '(:class)} -> :class
   emit </class>, state := {:bracket '()}
 
+** On the idea of "recursive descent"
+I had been sort of freaking myself out about this because I worried about
+how to represent the input code in such a way that I could split it up and
+compile blocks within blocks within blocks without losing my place in the
+overall scheme.
+
+But there's really no need to worry. I can take each token as it comes and
+compile it as long as I keep track of the *reader's position* within the stack.
 ** Track open punctuation or not? (yes, do)
 Interesting question: should we bother to even notice "{"? Right now the answer
 seems to be "no." There's nothing to even do with it now other than emit
