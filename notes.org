@@ -50,7 +50,7 @@ The next time we come across "}", it must mean we're closing out the class:
   {:bracket '(:class)} -> :class
   emit </class>, state := {:bracket '()}
 
-** Track open punctuation or not?
+** Track open punctuation or not? (yes, do)
 Interesting question: should we bother to even notice "{"? Right now the answer
 seems to be "no." There's nothing to even do with it now other than emit
 the XML straight out of the tokenizer. But that's just because classes are
@@ -59,6 +59,30 @@ sort of funny like that.
 Functions are much more particular. They have a <parameterList> intervening
 between the "function" keyword and the <subroutineBody>. You can't emit the
 <subroutineBody> tag until just before the "{".
+
+*** IT'S SO COMPLICATED
+Ok, so symbol compilation is going to have a bit more logic than I had
+anticipated. The AST format prescribed by these assholes is needlessly
+inconsistent (miss you, LISP).
+
+Here's an example: when compiling <symbol> { </symbol>, you've got to check
+the top of the "brace" stack. If it's :class, then just IGNORE IT and emit
+the token. If the top of the stack is :constructor or :function, then you
+should emit:
+  <subroutineBody>
+    <symbol> { </symbol>
+    <statements>
+
+When you get to "<symbol> } </symbol>", check the top of the stack again.
+If it's still :constructor (maybe :function, not sure), then emit this:
+      </statements>
+      <symbol> } </symbol>
+    </subroutineBody>
+  </subroutineDec>
+
+"</subroutineDec>" might seem to be coming out of nowhere. The opening tag
+is emitted way earlier, when compiling "<keyword> function </keyword>".
+See the inconsistency?
 
 ** Linting
 It would be interesting to write a basic linter to check for any glaring

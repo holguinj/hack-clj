@@ -44,7 +44,8 @@
   as stacks during recursive descent."
   []
   {:paren (atom ())
-   :brace (atom ())})
+   :brace (atom ())
+   :semicolon (atom ())})
 
 (defn dig-in
   "Given a state map, punctuation (:paren or :brace)
@@ -64,11 +65,24 @@
     (try
       (swap! (state punctuation) rest)
       (catch NullPointerException e
-        "back-out called in an invalid state."))
+        "back-out called with an invalid state."))
     (str "</" (name tag-type) ">")))
 
-(defmulti compile-nonterminal (juxt token-type token-value))
+(defmulti compile-nonterminal
+  "Given a state object and a token (XML string), continue compilation
+   with that token. This outer form dispatches on token type."
+  (fn [state token] (token-type token)))
 
-(defmethod compile-nonterminal [:keyword :class]
-  (println "Got a class thingy!")
-  )
+(defmethod compile-nonterminal :keyword
+  [state token]
+  (compile-keyword state token))
+
+(defmulti compile-keyword
+  "Inner component of compile-nonterminal. Compiles <keyword> tokens.
+   Dispatches on token value."
+  token-value)
+
+(defmethod compile-keyword :class
+  [token]
+  (dig-in state :bracket :class)
+  (str "<class>\n" token))
