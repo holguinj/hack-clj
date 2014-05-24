@@ -103,7 +103,31 @@ way to express the syntactic restrictions declaratively, maybe something like:
 
 Just spitballing.
 
-** Other nonterminals and their demarcators
-
-<keyword> var </keyword> ... <symbol> ; </symbol>
-<varDec> ^ </varDec>
+** Symbols and what they do (notes for compile-symbol)
+*** :open-brace
+**** :class
+     Just chill.
+**** :constructor, :method, :function
+     Emit <subroutineBody>, token
+**** :while, :if
+     Emit token, <statements>
+*** :close-brace
+**** :class
+     Emit token, </class>
+**** :constructor, :method, :function
+     Emit token, </subroutineBody>, </subroutineDec>
+**** :while
+     Emit </statements>, token, </whileStatement>
+**** :if
+     Emit </statements>, token, </ifStatement>
+*** :semicolon
+**** :field
+     Emit token, </classVarDec>
+**** :let
+     Emit token, </letStatement>
+** TODO Notes for compile-keyword
+   Something equivalent to the above -- what to do when encountering
+   keywords in various contexts
+** Expressions are hard
+   Mostly basing this on the fact that they're handled separately from
+   other structures.
