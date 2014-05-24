@@ -1,5 +1,6 @@
 (ns hack-clj.jack-analyzer
-  (:require [hack-clj.jack-lexer :as lexer]))
+  (:require [hack-clj.jack-lexer :as lexer]
+            [hack-clj.util :as util]))
 
 
 ;; IDEA: Keep the whole (tokenized) program in a stack.
@@ -32,12 +33,14 @@
 
 (defn token-value
   "Given a line of XML (from the lexer), return
-  the value between the open and close tags."
+  the value between the open and close tags as
+  a keyword. If the value is a punctuation mark,
+  spell it out first."
   [s]
   (->> s
-       (re-find #"<[a-z]+> ([a-z]+) </[a-z]+>")
+       (re-find #"<[a-z]+> (\S+) </[a-z]+>")
        (second)
-       (keyword)))
+       (util/keyword)))
 
 (defn new-state
   "Returns a map with blank atomic lists to be used
@@ -67,6 +70,24 @@
       (catch NullPointerException e
         "back-out called with an invalid state."))
     (str "</" (name tag-type) ">")))
+
+(defmulti compile-terminal
+  "Given a state object and a token (XML string), compile
+   the token. This outer form dispatches on token type."
+  (fn [state token] (token-type token)))
+
+(defmethod compile-terminal :symbol
+  [state token]
+  (compile-symbol state token))
+
+(defmulti compile-symbol
+  "Given a state object and a token (XML string) containing a
+   <symbol>, compile that symbol. Will probably open or close
+   at least one additional tag."
+  (fn [state token]
+    (let [])
+    )
+  )
 
 (defmulti compile-nonterminal
   "Given a state object and a token (XML string), continue compilation
