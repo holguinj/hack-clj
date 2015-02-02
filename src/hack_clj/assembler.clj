@@ -17,12 +17,6 @@
     (Integer/parseInt)
     (Integer/toString 2)))
 
-;; c-instructions have the following form:
-;;   dest=comp;jump
-;; where either the dest or jump fields may be empty.
-;; if dest is empty, "=" is omitted
-;; if jump is empty, ";" is omitted
-
 (def extract
   (comp second (partial re-find)))
 
@@ -110,6 +104,13 @@
     :else (throw (IllegalArgumentException.
                   (str "unknown instruction type " s)))))
 
+(defn assert-output
+  [in out]
+  (if (and (= 16 (count out))
+           (re-matches #"^[01]+$" out))
+    out
+    (throw (IllegalArgumentException. (str "Compilation failure: " in " -> " out)))))
+
 (defn compile-c-instruction
   "Parse the given string as a C-instruction and return the resulting
   binary string."
@@ -128,6 +129,7 @@
 
 (defn compile-instruction
   [s]
+  {:post [(assert-output s %)]}
   (condp = (instruction-type s)
     :a-instruction (compile-a-instruction s)
     :c-instruction (compile-c-instruction s)

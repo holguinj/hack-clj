@@ -132,6 +132,8 @@
 
 (deftest acceptance-test
   (testing "without symbols"
-    (compare-compilation "Add.asm" "Add.hack"))
+    (compare-compilation "Add.asm" "Add.hack")
+    (compare-compilation "MaxL.asm" "MaxL.hack")
+    (compare-compilation "PongL.asm" "PongL.hack"))
   (testing "with symbols"
-    (compare-compilation "Max.asm" "Max.hack")))
+    #_(compare-compilation "Max.asm" "Max.hack")))
