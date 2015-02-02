@@ -16,13 +16,6 @@
     (Integer/parseInt)
     (Integer/toString 2)))
 
-(defn compile-a-instruction
-  [num]
-  (let [val (binary num)]
-    (->> val
-      zfill
-      (str "0"))))
-
 ;; c-instructions have the following form:
 ;;   dest=comp;jump
 ;; where either the dest or jump fields may be empty.
@@ -106,6 +99,16 @@
        (get dest-instruction dest "000")
        (get jump-instruction jump "000")))
 
+(defn instruction-type
+  [s]
+  (cond
+    (re-find #"@\d+$" s)   :a-instruction
+    (re-find #"^.+[=;]" s) :c-instruction
+    (re-find #"\(.+\)$" s) :jump-target
+    (re-find #"@\w+$" s)   :a-var
+    :else (throw (IllegalArgumentException.
+                  (str "unknown instruction type " s)))))
+
 (defn compile-c-instruction
   "Parse the given string as a C-instruction and return the resulting
   binary string."
@@ -114,14 +117,22 @@
     parse-c-instruction
     generate-c-instruction))
 
-(defn instruction-type
+(defn compile-a-instruction
+  [num]
+  (let [num-str (str/replace (str num) #"@" "")
+        val (binary num-str)]
+    (->> val
+      zfill
+      (str "0"))))
+
+(defn compile-instruction
   [s]
-  (cond
-    (re-find #"@\w+" s)    :a-instruction
-    (re-find #"^.+[=;]" s) :c-instruction
-    (re-find #"\(.+\)$" s) :jump-target
-    :else (throw (IllegalArgumentException.
-                  (str "unknown instruction type " s)))))
+  (condp = (instruction-type s)
+    :a-instruction (compile-a-instruction s)
+    :c-instruction (compile-c-instruction s)
+    (throw (IllegalArgumentException.
+            (str "Can't compile instruction: " s " of type "
+                 (instruction-type s) ".")))))
 
 (defn code?
   "Returns true if the given string is not a comment and not blank"

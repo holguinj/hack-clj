@@ -32,12 +32,6 @@
            {:dest "dest"
             :comp "D&M"}))))
 
-(deftest compile-a-instruction-test
-  (testing "book example"
-    (is (= "0000000000000111"
-           (compile-a-instruction 7)
-           (compile-a-instruction "7")))))
-
 (deftest generate-c-instruction-test
   (testing "book examples"
     (is (= "1111110111011000"
@@ -54,21 +48,38 @@
     (is (= "1110010011010000"
            (compile-c-instruction "D=D-A")))))
 
+(deftest compile-a-instruction-test
+  (testing "book example"
+    (is (= "0000000000000111"
+           (compile-a-instruction 7)
+           (compile-a-instruction "7")))))
+
 (deftest instruction-type-test
   (is (= :a-instruction
-         (instruction-type "@123")
-         (instruction-type "@foo")
-         (instruction-type "@f123")))
+         (instruction-type "@123")))
   (is (= :c-instruction
          (instruction-type "M+1;jump")
          (instruction-type "dest=D&M")
          (instruction-type "comp=dest;jump")))
   (is (= :jump-target
          (instruction-type "(LOOP)")
-         (instruction-type "(1_infinite_loop)"))))
+         (instruction-type "(1_infinite_loop)")))
+  (is (= :a-var
+         (instruction-type "@f123")
+         (instruction-type "@VAR"))))
 
 (deftest code?-test
   (is (code? "@fake // inline comment "))
   (is (code? " D=MD"))
   (is (not (code? "//I'm just a comment")))
   (is (not (code? " "))))
+
+(deftest compile-instruction-test
+  (testing "C-instructions"
+    (is (= "1111110111011000"
+           (compile-instruction "MD=M+1")))
+    (is (= "1110010011010000"
+           (compile-instruction "D=D-A"))))
+  (testing "A-instructions"
+    (is (= "0000000000000111"
+           (compile-instruction "@7")))))
