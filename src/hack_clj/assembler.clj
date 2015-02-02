@@ -1,4 +1,5 @@
-(ns hack-clj.assembler)
+(ns hack-clj.assembler
+  (:require [clojure.string :as str]))
 
 (defn zfill
   "Returns a string ending with s, padded with zeroes up to n
@@ -15,7 +16,6 @@
     (Integer/parseInt)
     (Integer/toString 2)))
 
-;; @value = A<-value
 (defn compile-a-instruction
   [num]
   (let [val (binary num)]
@@ -99,9 +99,32 @@
    "JLE" "110"
    "JMP" "111"})
 
-(defn compile-c-instruction
+(defn generate-c-instruction
   [{:keys [dest comp jump]}]
   (str "111"
        (comp-instruction comp)
        (get dest-instruction dest "000")
        (get jump-instruction jump "000")))
+
+(defn compile-c-instruction
+  "Parse the given string as a C-instruction and return the resulting
+  binary string."
+  [s]
+  (-> s
+    parse-c-instruction
+    generate-c-instruction))
+
+(defn instruction-type
+  [s]
+  (cond
+    (re-find #"@\w+" s)    :a-instruction
+    (re-find #"^.+[=;]" s) :c-instruction
+    (re-find #"\(.+\)$" s) :jump-target
+    :else (throw (IllegalArgumentException.
+                  (str "unknown instruction type " s)))))
+
+(defn code?
+  "Returns true if the given string is not a comment and not blank"
+  [s]
+  (let [line (-> s (str/replace #"//.*$" "") str/trim)]
+    (not (str/blank? line))))

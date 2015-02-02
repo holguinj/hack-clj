@@ -38,11 +38,37 @@
            (compile-a-instruction 7)
            (compile-a-instruction "7")))))
 
+(deftest generate-c-instruction-test
+  (testing "book examples"
+    (is (= "1111110111011000"
+           (generate-c-instruction {:dest "MD"
+                                    :comp "M+1"})))
+    (is (= "1110010011010000"
+           (generate-c-instruction {:dest "D"
+                                    :comp "D-A"})))))
+
 (deftest compile-c-instruction-test
   (testing "book examples"
     (is (= "1111110111011000"
-           (compile-c-instruction {:dest "MD"
-                                   :comp "M+1"})))
+           (compile-c-instruction "MD=M+1")))
     (is (= "1110010011010000"
-         (compile-c-instruction {:dest "D"
-                                 :comp "D-A"})))))
+           (compile-c-instruction "D=D-A")))))
+
+(deftest instruction-type-test
+  (is (= :a-instruction
+         (instruction-type "@123")
+         (instruction-type "@foo")
+         (instruction-type "@f123")))
+  (is (= :c-instruction
+         (instruction-type "M+1;jump")
+         (instruction-type "dest=D&M")
+         (instruction-type "comp=dest;jump")))
+  (is (= :jump-target
+         (instruction-type "(LOOP)")
+         (instruction-type "(1_infinite_loop)"))))
+
+(deftest code?-test
+  (is (code? "@fake // inline comment "))
+  (is (code? " D=MD"))
+  (is (not (code? "//I'm just a comment")))
+  (is (not (code? " "))))
