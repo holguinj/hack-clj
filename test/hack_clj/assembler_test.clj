@@ -136,4 +136,4 @@
     (compare-compilation "MaxL.asm" "MaxL.hack")
     (compare-compilation "PongL.asm" "PongL.hack"))
   (testing "with symbols"
-    #_(compare-compilation "Max.asm" "Max.hack")))
+    (compare-compilation "Max.asm" "Max.hack")))
