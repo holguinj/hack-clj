@@ -1,5 +1,6 @@
 (ns hack-clj.assembler
-  (:require [clojure.string :as str]))
+  (:require [clojure.string :as str]
+            [clojure.java.io :as io]))
 
 (defn zfill
   "Returns a string ending with s, padded with zeroes up to n
@@ -139,3 +140,77 @@
   [s]
   (let [line (-> s (str/replace #"//.*$" "") str/trim)]
     (not (str/blank? line))))
+
+(defn a-var?
+  [s]
+  (= :a-var
+     (instruction-type s)))
+
+(defn jump?
+  [s]
+  (= :jump-target
+     (instruction-type s)))
+
+(defn strip-parens
+  [s]
+  (str/replace s #"[\(\)]" ""))
+
+(defn jump-map
+  [instructions]
+  (loop [[inst :as remaining] instructions
+         acc {}
+         i 0]
+    (cond
+      (empty? remaining) acc
+
+      (= :jump-target (instruction-type inst))
+      (recur (rest remaining)
+             (assoc acc (strip-parens inst) i)
+             i)
+
+      :else
+      (recur (rest remaining)
+             acc
+             (inc i)))))
+
+(defn var-map
+  [jumps instructions]
+  (let [BASE 0
+        vars (->> instructions
+               (filter a-var?)
+               (map #(subs % 1))
+               (remove (partial contains? jumps)))]
+    (merge jumps
+           (zipmap vars (range BASE 1024)))))
+
+(defn symbol-map
+  [instructions]
+  (let [jumps (jump-map instructions)]
+    (var-map jumps instructions)))
+
+(defn replace-symbol
+  [symbols s]
+  (if-not (= :a-var (instruction-type s))
+    s
+    (let [sym (subs s 1)
+          address (get symbols sym)]
+      (str "@" address))))
+
+(defn compile-file*
+  "Pure counterpart of compile-file"
+  [lines]
+  (let [instructions (filter code? lines)
+        table (symbol-map instructions)]
+    (->> instructions
+      (remove jump?)
+      (map (partial replace-symbol table))
+      (map compile-instruction))))
+
+(defn compile-file
+  [file-in]
+  (let [lines (-> file-in io/file io/reader line-seq)]
+    (->> lines
+      compile-file*
+      (str/join "\n")
+      ;; TODO get the real output filename
+      (spit "out.hack"))))
