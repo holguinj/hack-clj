@@ -241,9 +241,9 @@
 
 (defn compile-file
   [file-in]
-  (let [lines (file->lines file-in)]
+  (let [lines (file->lines file-in)
+        out-name (str/replace file-in #"\.asm$" ".hack")]
     (->> lines
       compile-file*
       (str/join "\n")
-      ;; TODO get the real output filename
-      (spit "out.hack"))))
+      (spit out-name))))
