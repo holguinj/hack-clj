@@ -6,10 +6,10 @@ course.
 
 ## Usage
 
-In progress.
+It's only useful from the REPL for now.
 
 ## License
 
-Copyright © 2014 Justin Holguin.
+Copyright © 2015 Justin Holguin.
 
 Distributed under the Eclipse Public License version 1.0.
