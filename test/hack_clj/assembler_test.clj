@@ -94,46 +94,63 @@
 
 (deftest var-map-test
   (testing "without jumps"
-    (is (= {"foo" 0
-            "bar" 1
-            "baz" 2}
+    (is (= {"foo" 16
+            "bar" 17
+            "baz" 18}
            (var-map {} ["D=0" "@foo" "M=1" "@bar" "MD=D"
                         "0;jmp" "@baz" "1;JEQ"]))))
   (testing "with jumps"
-    (is (= {"foo"   0
-            "quux"  1
-            "bar"   1
-            "baz"   2
+    (is (= {"quux"  1
+            "foo"   16
+            "bar"   17
+            "baz"   18
             "blorp" 123}
            (var-map {"quux" 1
                      "blorp" 123} ["D=0" "@foo" "M=1" "@bar" "MD=D"
                                    "@quux" "0;jmp" "@baz" "1;JEQ" "@blorp"])))))
 
 (deftest symbol-map-test
-  (is (= {"foo" 0
-          "bar" 0
-          "baz" 1
-          "quux" 3}
-         (symbol-map ["(foo)" "D=0" "@bar" "@baz" "(quux)" "D=0"]))))
+  (is (= (merge {"sys.init" 0
+                 "bar" 16
+                 "baz" 17
+                 "quux" 3}
+                base-symbols)
+         (symbol-map ["(sys.init)" "D=0" "@bar" "@baz" "(quux)" "D=0" "@sys.init" "@bar"]))))
 
 (deftest replace-symbol-test
   (is (= "@12"
          (replace-symbol {"foo" 12}
                          "@foo")
          (replace-symbol {}
-                         "@12"))))
+                         "@12")))
+  (is (= "@1"
+         (replace-symbol {"sys.init" 1}
+                         "@sys.init"))))
 
 (defn compare-compilation
   [asm-in hack-in]
-  (let [input-lines   (-> (str "dev-resources/assembler/" asm-in)  io/file io/reader line-seq)
-        correct-lines (-> (str "dev-resources/assembler/" hack-in) io/file io/reader line-seq)]
-      (is (= correct-lines
-             (compile-file* input-lines)))))
+  (let [input-lines     (-> (str "dev-resources/assembler/" asm-in)  file->lines)
+        reference-lines (-> (str "dev-resources/assembler/" hack-in) file->lines)
+        output-lines    (compile-file* input-lines)]
+    (testing asm-in
+      (testing "compiles with the right number of output lines"
+        (is (= (count output-lines)
+               (count reference-lines))))
+      (testing "compiles to bytecode equivalent to the reference assembler's"
+        (is (= reference-lines
+               output-lines))))))
 
-(deftest acceptance-test
+(deftest ^:acceptance assembler-acceptance-test
   (testing "without symbols"
     (compare-compilation "Add.asm" "Add.hack")
     (compare-compilation "MaxL.asm" "MaxL.hack")
-    (compare-compilation "PongL.asm" "PongL.hack"))
-  (testing "with symbols"
-    (compare-compilation "Max.asm" "Max.hack")))
+    (compare-compilation "PongL.asm" "PongL.hack")
+    (compare-compilation "RectL.asm" "RectL.hack"))
+  (testing "built-in symbols"
+    (compare-compilation "Registers.asm" "Registers.hack"))
+  (testing "jumps and vars"
+    (compare-compilation "Labels.asm" "Labels.hack"))
+  (testing "reference program"
+    (compare-compilation "Max.asm" "Max.hack")
+    (compare-compilation "Pong.asm" "Pong.hack")
+    (compare-compilation "Rect.asm" "Rect.hack")))

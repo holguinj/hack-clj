@@ -1,0 +1,15 @@
+(dummy)
+(loop)
+@foo
+@bar
+@baz
+D=M-D
+@loop
+0;JMP
+(infinity)
+@infinity
+0;JMP
+(dead)
+0;JMP
+@dead
+0;JEQ

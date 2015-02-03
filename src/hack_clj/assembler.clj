@@ -101,7 +101,7 @@
     (re-find #"@\d+$" s)   :a-instruction
     (re-find #"^.+[=;]" s) :c-instruction
     (re-find #"\(.+\)$" s) :jump-target
-    (re-find #"@\w+$" s)   :a-var
+    (re-find #"@\S+$" s)   :a-var
     :else (throw (IllegalArgumentException.
                   (str "unknown instruction type " s)))))
 
@@ -195,31 +195,43 @@
 
 (defn var-map
   [jumps instructions]
-  (let [BASE 0
+  (let [BASE 16
         vars (->> instructions
                (filter a-var?)
                (map #(subs % 1))
-               (remove (partial contains? jumps)))]
+               (remove (partial contains? jumps))
+               distinct)]
     (merge jumps
-           (zipmap vars (range BASE 1024)))))
+           (zipmap vars (range BASE 16384)))))
 
 (defn symbol-map
   [instructions]
-  (let [jumps (jump-map instructions)]
-    (var-map jumps instructions)))
+  (let [jumps (jump-map instructions)
+        known (merge jumps base-symbols)]
+    (var-map known instructions)))
 
 (defn replace-symbol
   [symbols s]
-  (if-not (= :a-var (instruction-type s))
+  {:post [(not (= "@" %))]} ;; indicates a failed lookup
+  (if-not (a-var? s)
     s
     (let [sym (subs s 1)
           address (get symbols sym)]
       (str "@" address))))
 
+(def file->lines
+  (comp line-seq io/reader io/file)) 
+
+(defn strip-comments
+  [lines]
+  (->> lines
+    (filter code?)
+    (map str/trim)))
+
 (defn compile-file*
   "Pure counterpart of compile-file"
   [lines]
-  (let [instructions (->> lines (filter code?) (map str/trim))
+  (let [instructions (strip-comments lines)
         table (merge (symbol-map instructions)
                      base-symbols)]
     (->> instructions
@@ -229,7 +241,7 @@
 
 (defn compile-file
   [file-in]
-  (let [lines (-> file-in io/file io/reader line-seq)]
+  (let [lines (file->lines file-in)]
     (->> lines
       compile-file*
       (str/join "\n")
