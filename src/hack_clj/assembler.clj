@@ -228,16 +228,21 @@
     (filter code?)
     (map str/trim)))
 
-(defn compile-file*
-  "Pure counterpart of compile-file"
+(defn lines->instructions
   [lines]
   (let [instructions (strip-comments lines)
         table (merge (symbol-map instructions)
                      base-symbols)]
     (->> instructions
       (remove jump?)
-      (map (partial replace-symbol table))
-      (map compile-instruction))))
+      (map (partial replace-symbol table)))))
+
+(defn compile-file*
+  "Pure counterpart of compile-file"
+  [lines]
+  (->> lines
+    lines->instructions
+    (map compile-instruction)))
 
 (defn compile-file
   [file-in]
