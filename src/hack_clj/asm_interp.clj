@@ -1,0 +1,228 @@
+(ns hack-clj.asm-interp
+  (:require [clojure.string :as str]
+            [hack-clj.assembler :as asm]))
+
+;; TODO use this for actual tests
+(def ex ["@i" "M=1" "@sum" "M=0" "(LOOP)" "@i" "D=M" "@100"
+         "D=D-A" "@END" "D;JGT" "@i" "D=M" "@sum" "M=D+M"
+         "@i" "M=M+1" "@LOOP" "0;JMP" "(END)" "@END" "0;JMP"])
+
+(def insts (asm/lines->instructions ex))
+
+(defn parse-instruction
+  "Given a de-sugared ASM instruction, return a variant of the form [type data].
+  Types: :a-instruction, :jump, :assignment"
+  [instruction]
+  (let [type (asm/instruction-type instruction)
+        data (case type
+               :a-instruction (-> instruction
+                                (subs 1)
+                                (Integer/parseInt))
+               :c-instruction (asm/parse-c-instruction instruction)
+               (throw (IllegalArgumentException.
+                       (str instruction " is unsupported type: " (name type) "."))))]
+    [type data]))
+
+;; TODO come up with good, differentiated names for the stages in interpretation
+;; we've got sugary assembly code -> desugared assembly -> parsed assembly -> interpretable assembly
+
+(defn instruction->interpretable
+  "Parses the given instruction string into an interpretable statement."
+  [instruction]
+  (let [[type data] (parse-instruction instruction)]
+    (cond
+      (= type :a-instruction)
+      [:a-instruction data]
+
+      (and (= type :c-instruction)
+           (contains? data :jump))
+      [:jump data]
+
+      (and (= type :c-instruction))
+      [:assignment data]
+
+      :else
+      (throw (IllegalArgumentException. (str "Can't make an interpretable instruction from " instruction))))))
+
+(defn remove-end-loop
+  "The convention is for hack programs to 'end' in an infinite loop. This
+  function detects such a loop and removes the last instruction (an
+  unconditional jump) so that the interpreter will just terminate instead.
+
+  Won't affect programs that don't use this convention."
+  [interpretable-program]
+  (let [last-two (fn [coll] (let [v (vec coll)
+                                  c (count v)]
+                              (subvec v (- c 2))))
+        line-x-inst (mapv vector (range) interpretable-program)
+        [penult ult] (last-two line-x-inst)
+        penult-refers-to-self? (let [[line [type data]] penult]
+                                 (and (= :a-instruction type)
+                                      (= line data)))
+        ult-jumps-to-penult? (let [[_ [type data]] ult]
+                               (and (= :jump type)
+                                    (= "JMP" (:jump data))))]
+    (if (and penult-refers-to-self?
+             ult-jumps-to-penult?)
+      (vec (butlast interpretable-program))
+      interpretable-program)))
+
+(defn get-register
+  [ram reg]
+  (case reg
+    :A (get-in ram [:registers :A])
+    :D (get-in ram [:registers :D])
+    :M (let [address (get-register ram :A)]
+         (get ram address))))
+
+(defn set-register
+  [ram reg val]
+  (case reg
+    :A (assoc-in ram [:registers :A] val)
+    :D (assoc-in ram [:registers :D] val)
+    :M (let [address (get-register ram :A)]
+         (assoc ram address val))))
+
+(defn set-registers
+  "Given the RAM, a string/keyword like 'A'/:AMD, and a value, assoc the value into
+  the named registers."
+  [ram regs val]
+  (let [registers (->> regs name (map (comp keyword str)) (into #{}))
+        A? (:A registers)
+        D? (:D registers)
+        M? (:M registers)]
+    (cond-> ram
+      A? (set-register :A val)
+      D? (set-register :D val)
+      M? (set-register :M val))))
+
+(defn int->binstring
+  "Returns a zero-padded 16-bit binary string representation of the given int."
+  [n]
+  (asm/zfill (Integer/toString n 2)))
+
+(defn binstring->int
+  [bs]
+  (Integer/parseInt bs 2))
+
+(defn negate
+  "Int -> Int. 16-bit binary NOT."
+  [n]
+  (->> n
+    int->binstring
+    (map {\0 \1, \1 \0})
+    (apply str)
+    binstring->int))
+
+(defn b-and
+  "Int Int -> Int. 16-bit binary AND."
+  [x y]
+  (let [xb (int->binstring x)
+        yb (int->binstring y)
+        bit-and (fn [x y] (if (= \1 x y) "1" "0"))]
+    (->> (map bit-and xb yb)
+      (apply str)
+      binstring->int)))
+
+(defn b-or
+  "Int Int -> Int. 16-bit binary OR."
+  [x y]
+  (let [xb (int->binstring x)
+        yb (int->binstring y)
+        bit-or (fn [x y] (if (or (= \1 x)
+                                 (= \1 y))
+                           "1"
+                           "0"))]
+    (->> (map bit-or xb yb)
+      (apply str)
+      binstring->int)))
+
+(defn compute
+  "Given the RAM map and the comp field of a c-instruction, return the resulting
+  value."
+  [ram comp]
+  (let [r-get (partial get-register ram)
+        A (r-get :A)
+        D (r-get :D)
+        M (r-get :M)]
+    (case comp
+      "0"   0
+      "1"   1
+      "-1"  -1
+      "D"   D
+      "A"   A
+      "!D"  (negate D)
+      "!A"  (negate A)
+      "-D"  (- D)
+      "-A"  (- A)
+      "D+1" (inc D)
+      "A+1" (inc A)
+      "D-1" (dec D)
+      "A-1" (dec A)
+      "D+A" (+ D A)
+      "D-A" (- D A)
+      "A-D" (- A D)
+      "D&A" (b-and D A)
+      "D|A" (b-or D A)
+      "M"   M
+      "!M"  (negate M)
+      "-M"  (- M)
+      "M+1" (inc M)
+      "M-1" (dec M)
+      "D+M" (+ D M)
+      "D-M" (- D M)
+      "M-D" (- M D)
+      "D&M" (b-and D M)
+      "D|M" (b-or D M)
+      (throw (IllegalArgumentException. (str "Can't compute " comp " :: " (type comp)))))))
+
+(defn jump?
+  [comparison val]
+  (case comparison
+    "JGT" (pos? val)
+    "JEQ" (zero? val)
+    "JGE" (>= val 0)
+    "JLT" (neg? val)
+    "JNE" (not (zero? val))
+    "JLE" (<= val 0)
+    "JMP" true
+    (throw (IllegalArgumentException. (str comparison " doesn't appear to be a jump instruction.")))))
+
+(defn run
+  [program]
+  (let [instructions (->> program
+                       (mapv instruction->interpretable)
+                       remove-end-loop)]
+    (loop [pc 0
+           ram {:registers {:A 0, :D 0}}
+           fuel 1e7] ;; i.e., about 10 seconds in the REPL on my machine
+      (if-let [[type instruction] (get instructions pc)]
+        (if (zero? fuel) ;; to ensure termination
+          ram
+          (case type
+            :a-instruction (recur (inc pc)
+                                  (set-register ram :A instruction)
+                                  (dec fuel))
+
+            :assignment (let [val (compute ram (:comp instruction))
+                              dest (:dest instruction)]
+                          (recur (inc pc)
+                                 (set-registers ram dest val)
+                                 (dec fuel)))
+
+            :jump (let [val (compute ram (:comp instruction))
+                        comparison (:jump instruction)
+                        next-pc (if (jump? comparison val)
+                                  (get-register ram :A)
+                                  (inc pc))]
+                    (recur next-pc
+                           ram
+                           (dec fuel)))))
+        ;; else we're out of instructions
+        ram))))
+
+;; TODO
+;; refactor so that `run' has access to the symbol table,
+;;   then add a key to the ram on output that includes a :symbols key, showing
+;;   the final values for all named symbols
+;; consider using a vector for ram
