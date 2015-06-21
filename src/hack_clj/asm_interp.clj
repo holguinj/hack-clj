@@ -68,10 +68,10 @@
 (defn get-register
   [ram reg]
   (case reg
-    :A (get-in ram [:registers :A])
-    :D (get-in ram [:registers :D])
+    :A (get-in ram [:registers :A] 0)
+    :D (get-in ram [:registers :D] 0)
     :M (let [address (get-register ram :A)]
-         (get ram address))))
+         (get ram address 0))))
 
 (defn set-register
   [ram reg val]
