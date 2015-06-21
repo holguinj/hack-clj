@@ -231,6 +231,8 @@
 (defn run
   "Given a program (which may include syntactic sugar), return the resulting
   memory map along with a map of variables with their final values."
+  ;; TODO make it possible to bind vars by name in init-vars.
+  ;;   E.g.: {"in" 300} -> {16 300}
   ([hack-asm] (run hack-asm {}))
   ([hack-asm init-vars]
    (let [sym-map (-> hack-asm
