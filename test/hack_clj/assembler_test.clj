@@ -1,6 +1,7 @@
 (ns hack-clj.assembler-test
   (:require [clojure.test :refer :all]
             [hack-clj.assembler :refer :all]
+            [hack-clj.parse :as parse]
             [clojure.java.io :as io]))
 
 (deftest zfill-test
@@ -69,12 +70,6 @@
          (instruction-type "@f123")
          (instruction-type "@VAR"))))
 
-(deftest code?-test
-  (is (code? "@fake // inline comment "))
-  (is (code? " D=MD"))
-  (is (not (code? "//I'm just a comment")))
-  (is (not (code? " "))))
-
 (deftest compile-instruction-test
   (testing "C-instructions"
     (is (= "1111110111011000"
@@ -129,8 +124,8 @@
 
 (defn compare-compilation
   [asm-in hack-in]
-  (let [input-lines     (-> (str "dev-resources/assembler/" asm-in)  file->lines)
-        reference-lines (-> (str "dev-resources/assembler/" hack-in) file->lines)
+  (let [input-lines     (-> (str "dev-resources/assembler/" asm-in)  parse/file->lines)
+        reference-lines (-> (str "dev-resources/assembler/" hack-in) parse/file->lines)
         output-lines    (compile-file* input-lines)]
     (testing asm-in
       (testing "compiles with the right number of output lines"

@@ -1,5 +1,6 @@
 (ns hack-clj.assembler
-  (:require [clojure.string :as str]
+  (:require [hack-clj.parse :refer [extract code? file->lines strip-comments]]
+            [clojure.string :as str]
             [clojure.java.io :as io]))
 
 (defn zfill
@@ -17,11 +18,9 @@
     (Integer/parseInt)
     (Integer/toString 2)))
 
-(def extract
-  (comp second (partial re-find)))
-
 (def get-dest (partial extract #"(\w+)="))
 (def get-jump (partial extract #";(\w+)"))
+
 (defn get-comp [s]
   (let [comp-syms #"([AMD01\!\|\-\&\+]+)"]
     (or (extract (re-pattern (str "=" comp-syms)) s)
@@ -138,12 +137,6 @@
             (str "Can't compile instruction: " s " of type "
                  (instruction-type s) ".")))))
 
-(defn code?
-  "Returns true if the given string is not a comment and not blank"
-  [s]
-  (let [line (-> s (str/replace #"//.*$" "") str/trim)]
-    (not (str/blank? line))))
-
 (defn a-var?
   [s]
   (= :a-var
@@ -218,15 +211,6 @@
     (let [sym (subs s 1)
           address (get symbols sym)]
       (str "@" address))))
-
-(def file->lines
-  (comp line-seq io/reader io/file)) 
-
-(defn strip-comments
-  [lines]
-  (->> lines
-    (filter code?)
-    (map str/trim)))
 
 (defn lines->instructions
   [lines]

@@ -1,5 +1,6 @@
 (ns hack-clj.asm-interp-test
   (:require [hack-clj.asm-interp :refer :all]
+            [hack-clj.parse :as parse]
             [hack-clj.assembler :as asm]
             [clojure.test :refer :all]))
 
@@ -162,8 +163,8 @@
   [name]
   (->> name
     (str "dev-resources/assembler/")
-    asm/file->lines
-    asm/strip-comments))
+    parse/file->lines
+    parse/strip-comments))
 
 (deftest acceptance
   (testing "sum 100"
