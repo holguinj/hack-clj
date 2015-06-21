@@ -1,13 +1,7 @@
 (ns hack-clj.asm-interp
-  (:require [clojure.string :as str]
+  (:require [clojure.set :as set]
+            [clojure.string :as str]
             [hack-clj.assembler :as asm]))
-
-;; TODO use this for actual tests
-(def ex ["@i" "M=1" "@sum" "M=0" "(LOOP)" "@i" "D=M" "@100"
-         "D=D-A" "@END" "D;JGT" "@i" "D=M" "@sum" "M=D+M"
-         "@i" "M=M+1" "@LOOP" "0;JMP" "(END)" "@END" "0;JMP"])
-
-(def insts (asm/lines->instructions ex))
 
 (defn parse-instruction
   "Given a de-sugared ASM instruction, return a variant of the form [type data].
@@ -55,6 +49,10 @@
                                   c (count v)]
                               (subvec v (- c 2))))
         line-x-inst (mapv vector (range) interpretable-program)
+        ;; line-x-inst is a vector of [line-number instruction] pairs.
+        ;;   where an instruction is itself a pair of [type data]
+        ;;   and data will be an int for :a-instruction, or a map
+        ;;   for :assignment or :jump
         [penult ult] (last-two line-x-inst)
         penult-refers-to-self? (let [[line [type data]] penult]
                                  (and (= :a-instruction type)
@@ -188,41 +186,61 @@
     "JMP" true
     (throw (IllegalArgumentException. (str comparison " doesn't appear to be a jump instruction.")))))
 
+(defn run*
+  ([program] (run* program {}))
+  ([program init-vars]
+   (let [instructions (->> program
+                        (mapv instruction->interpretable)
+                        remove-end-loop)
+         init-mem (merge init-vars {:registers {:A 0, :D 0}})]
+     (loop [pc 0
+            ram init-mem
+            fuel 1e7] ;; i.e., about 10 seconds in the REPL on my machine
+       (if-let [[type instruction] (get instructions pc)]
+         (if (zero? fuel) ;; to ensure termination
+           ram
+           (case type
+             :a-instruction (recur (inc pc)
+                                   (set-register ram :A instruction)
+                                   (dec fuel))
+
+             :assignment (let [val (compute ram (:comp instruction))
+                               dest (:dest instruction)]
+                           (recur (inc pc)
+                                  (set-registers ram dest val)
+                                  (dec fuel)))
+
+             :jump (let [val (compute ram (:comp instruction))
+                         comparison (:jump instruction)
+                         next-pc (if (jump? comparison val)
+                                   (get-register ram :A)
+                                   (inc pc))]
+                     (recur next-pc
+                            ram
+                            (dec fuel)))))
+         ;; else we're out of instructions
+         ram)))))
+
+(defn map-keys
+  [f m]
+  (->> m
+    (map (fn [[k v]] [(f k) v]))
+    (filter (fn [[k v]] (some? k)))
+    (into {})))
+
 (defn run
-  [program]
-  (let [instructions (->> program
-                       (mapv instruction->interpretable)
-                       remove-end-loop)]
-    (loop [pc 0
-           ram {:registers {:A 0, :D 0}}
-           fuel 1e7] ;; i.e., about 10 seconds in the REPL on my machine
-      (if-let [[type instruction] (get instructions pc)]
-        (if (zero? fuel) ;; to ensure termination
-          ram
-          (case type
-            :a-instruction (recur (inc pc)
-                                  (set-register ram :A instruction)
-                                  (dec fuel))
-
-            :assignment (let [val (compute ram (:comp instruction))
-                              dest (:dest instruction)]
-                          (recur (inc pc)
-                                 (set-registers ram dest val)
-                                 (dec fuel)))
-
-            :jump (let [val (compute ram (:comp instruction))
-                        comparison (:jump instruction)
-                        next-pc (if (jump? comparison val)
-                                  (get-register ram :A)
-                                  (inc pc))]
-                    (recur next-pc
-                           ram
-                           (dec fuel)))))
-        ;; else we're out of instructions
-        ram))))
+  "Given a program (which may include syntactic sugar), return the resulting
+  memory map along with a map of variables with their final values."
+  ([hack-asm] (run hack-asm {}))
+  ([hack-asm init-vars]
+   (let [sym-map (-> hack-asm
+                   asm/symbol-map
+                   (dissoc "SP" "LCL" "ARG" "THIS" "THAT") ; these conflict with R0-R4
+                   set/map-invert)
+         desugared (asm/lines->instructions hack-asm)
+         memory (run* desugared init-vars)
+         final-vars (map-keys sym-map memory)]
+     (assoc memory :vars final-vars))))
 
 ;; TODO
-;; refactor so that `run' has access to the symbol table,
-;;   then add a key to the ram on output that includes a :symbols key, showing
-;;   the final values for all named symbols
 ;; consider using a vector for ram
