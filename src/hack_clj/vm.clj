@@ -103,24 +103,30 @@
   [s]
   (str "(" s ")"))
 
-(defn eq
-  []
-  (flattenv
-   (let [ret-true (gensym "eq-true-")
-         end (gensym "eq-end-")]
-     [sub
-      pop-d
-      ;; D=0 iff x=y
-      (a-load ret-true)
-      "D;JEQ"
+(defn comparison-fn
+  "Returns a function that generates code for a vm comparison operator.
+  'jump-instruction' should be one of JGT, JGE, JEQ, etc. The 'prefix' will be
+  added to the emitted code for clarity."
+  [jump-instruction prefix]
+  (fn []
+    (flattenv
+     (let [ret-true (gensym (str prefix "-true-"))
+           end (gensym (str prefix "-end-"))]
+       [sub
+        pop-d
+        ;; D=0 iff x=y
+        (a-load ret-true)
+        (str "D;" jump-instruction)
 
-      ;; skipped if x = y
-      (d-load FALSE)
-      push-d
-      (do-jump end)
+        ;; skipped if comparison to zero is true
+        (d-load FALSE)
+        push-d
+        (do-jump end)
 
-      (label ret-true)
-      (d-load TRUE)
-      push-d
+        (label ret-true)
+        (d-load TRUE)
+        push-d
 
-      (label end)])))
+        (label end)]))))
+
+(def eq (comparison-fn "JEQ" "eq"))

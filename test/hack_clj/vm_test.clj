@@ -79,7 +79,19 @@
       (let [sub-8-5 (wrap-init [(push-constant 8)
                                 (push-constant 5) ;; yes, this is the correct order
                                 sub])]
-        (is (= '(3) (run-stack sub-8-5)))))
+        (is (= '(3) (run-stack sub-8-5))))
+      (let [sub-ffi (fn [x y] (-> [(push-constant x)
+                                   (push-constant y)
+                                   sub]
+                                wrap-init
+                                run-stack
+                                first))]
+        (are [pair expected] (= expected (apply sub-ffi pair))
+          [100 99] 1
+          [1 1] 0
+          [33 10] 23
+          [0 10] -10
+          [10 30] -20)))
     (testing "with multiple numbers"
       (let [sub-100-68-10 (wrap-init [(push-constant 720)
                                       (push-constant 100)
