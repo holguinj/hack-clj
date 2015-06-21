@@ -103,7 +103,7 @@
   [bs]
   (Integer/parseInt bs 2))
 
-(defn negate
+(defn b-not
   "Int -> Int. 16-bit binary NOT."
   [n]
   (->> n
@@ -149,8 +149,8 @@
       "-1"  -1
       "D"   D
       "A"   A
-      "!D"  (negate D)
-      "!A"  (negate A)
+      "!D"  (b-not D)
+      "!A"  (b-not A)
       "-D"  (- D)
       "-A"  (- A)
       "D+1" (inc D)
@@ -163,7 +163,7 @@
       "D&A" (b-and D A)
       "D|A" (b-or D A)
       "M"   M
-      "!M"  (negate M)
+      "!M"  (b-not M)
       "-M"  (- M)
       "M+1" (inc M)
       "M-1" (dec M)
