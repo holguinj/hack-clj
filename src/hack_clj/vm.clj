@@ -3,6 +3,14 @@
 
 (def flattenv (comp vec flatten))
 
+(def ^:const TRUE
+  "i.e., 15 ones in binary"
+  32767)
+
+(def ^:const FALSE
+  "i.e., 15 zeros in binary"
+  0)
+
 (defn wrap-init
   [prog]
   (flattenv
@@ -42,15 +50,19 @@
   ["@SP"
    "M=M+1"])
 
+(def pop-d
+  (flattenv
+   [dec-sp
+    "@SP"
+    "A=M"
+    "D=M"]))
+
 (defn with-top-two-from-stack
   "Pops into D, then pops into M, then executes the instructions and increments the pointer.
   You should store the result of this computation in M."
   [& insts]
   (flattenv
-   [dec-sp
-    "@SP"
-    "A=M"
-    "D=M"   ;; D=stack[0]
+   [pop-d   ;; D=stack[0]
     dec-sp
     "@SP"
     "A=M"   ;; M=stack[-1]
@@ -65,3 +77,50 @@
   (with-top-two-from-stack
     "M=M-D"))
 
+(def neg
+  (flattenv
+   [pop-d
+    "@SP"
+    "A=M"
+    "M=-D"
+    inc-sp]))
+
+(defn do-jump
+  [label]
+  (flattenv
+   [(a-load label)
+    "0;JMP"]))
+
+(def pop-d
+  (flattenv
+   ["@SP"
+    "A=M"
+    "A=A-1"
+    "D=M"
+    dec-sp]))
+
+(defn label
+  [s]
+  (str "(" s ")"))
+
+(defn eq
+  []
+  (flattenv
+   (let [ret-true (gensym "eq-true-")
+         end (gensym "eq-end-")]
+     [sub
+      pop-d
+      ;; D=0 iff x=y
+      (a-load ret-true)
+      "D;JEQ"
+
+      ;; skipped if x = y
+      (d-load FALSE)
+      push-d
+      (do-jump end)
+
+      (label ret-true)
+      (d-load TRUE)
+      push-d
+
+      (label end)])))

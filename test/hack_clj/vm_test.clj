@@ -62,6 +62,7 @@
                                             (push-constant 5)
                                             add])]
           (is (= '(12 8) (run-stack add-3-5-ignore-12))))))
+
     (testing "with multiple numbers"
       (let [add-1-2-3-4 (wrap-init [(push-constant 666)
                                     (push-constant 1)
@@ -72,6 +73,7 @@
                                     add
                                     add])]
         (is (= '(666 10) (run-stack add-1-2-3-4))))))
+
   (testing "sub"
     (testing "two numbers"
       (let [sub-8-5 (wrap-init [(push-constant 8)
@@ -85,4 +87,40 @@
                                       (push-constant 10)
                                       sub
                                       sub])]
-        (is (= '(720 42) (run-stack sub-100-68-10)))))))
+        (is (= '(720 42) (run-stack sub-100-68-10))))))
+
+  (testing "neg"
+    (testing "with one number on the stack"
+      (let [neg-100 (wrap-init [(push-constant 100)
+                                neg])]
+        (is (= '(-100) (run-stack neg-100)))))
+    (testing "with two numbers on the stack"
+      (let [neg-50 (wrap-init [(push-constant 301)
+                               (push-constant 50)
+                               neg])]
+        (is (= '(301 -50) (run-stack neg-50)))))
+    (testing "is surjective"
+      (let [neg-neg-12 (wrap-init [(push-constant 12)
+                                   neg
+                                   neg])]
+        (is (= '(12) (run-stack neg-neg-12))))))
+
+  (testing "eq"
+    (let [eq-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (eq)]
+                             wrap-init
+                             run-stack
+                             first))]
+      (are [pair expected] (= expected (apply eq-ffi pair))
+        [1 1]       TRUE
+        [0 0]       TRUE
+        [100 100]   TRUE
+        [-12 -12]   TRUE
+        [1234 1234] TRUE
+
+        [1 0]       FALSE
+        [0 1]       FALSE
+        [1000 100]  FALSE
+        [100 1000]  FALSE
+        [100 101]   FALSE
+        [1234 1235] FALSE
+        [67 200]    FALSE))))
