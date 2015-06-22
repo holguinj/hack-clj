@@ -94,14 +94,37 @@
       D? (set-register :D val)
       M? (set-register :M val))))
 
+(defn flip-bin-chars
+  [bs]
+  (->> bs
+    (map {\0 \1, \1 0})
+    (apply str)))
+
 (defn int->binstring
-  "Returns a zero-padded 16-bit binary string representation of the given int."
+  "Returns a 15-bit twos complement binary string representation of the given int."
   [n]
-  (asm/zfill (Integer/toString n 2)))
+  {:pre [(integer? n)
+         (<= -32767 n 32767)]}
+  (if (neg? n)
+    (let [complement  (-> (- n)
+                        int->binstring
+                        flip-bin-chars
+                        (Integer/parseInt 2)
+                        inc)]
+      (int->binstring complement))
+    ;; else n >= 0
+    (asm/zfill (Integer/toString n 2))))
 
 (defn binstring->int
   [bs]
-  (Integer/parseInt bs 2))
+  {:pre [(= 15 (count bs))]}
+  (if (= \1 (first bs)) ;; number is negative
+    (-> bs
+      flip-bin-chars
+      binstring->int
+      inc
+      (* -1))
+    (Integer/parseInt bs 2)))
 
 (defn b-not
   "Int -> Int. 16-bit binary NOT."

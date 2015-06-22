@@ -97,13 +97,24 @@
                (get-register mem :M)
                (get mem 1)))))))
 
+(deftest binary-strings-test
+  (testing "round-trippable"
+    (doseq [i (range -100 100)]
+      (is (= i (-> i int->binstring binstring->int))))))
+
 (deftest binary-ops-test
   (testing "b-not"
-    (are [in out] (= out (b-not in))
-      12    32755
-      32755 12
-      0     32767
-      32767 0))
+    (testing "is surjective"
+      (doseq [i (range -100 100)]
+        (is (= i (b-not (b-not i))))))
+
+    (testing "examples"
+      (are [in out] (= out (b-not in))
+        -13   12
+        12    -13
+        -1    0
+        0     -1)))
+
   (testing "b-and"
     (are [pair out] (= out (apply b-and pair))
       [12 13]   12
@@ -115,6 +126,7 @@
       [666 666] 666
       [100 50]  32
       [50 100]  32))
+
   (testing "b-or"
     (are [pair out] (= out (apply b-or pair))
       [0 1]   1
