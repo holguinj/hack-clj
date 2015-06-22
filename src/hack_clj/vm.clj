@@ -130,3 +130,22 @@
         (label end)]))))
 
 (def eq (comparison-fn "JEQ" "eq"))
+
+(def gt (comparison-fn "JGT" "gt"))
+
+(def lt (comparison-fn "JLT" "lt"))
+
+(defn boolean-op
+  [bool-op]
+  (with-top-two-from-stack
+    [(str "M=" bool-op)])) ;; e.g,. D|M
+
+(def b-and (boolean-op "D&M"))
+
+(def b-or (boolean-op "D|M"))
+
+(def b-not
+  (flattenv
+   [pop-d
+    "D=!D"
+    push-d]))

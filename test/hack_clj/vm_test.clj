@@ -46,7 +46,11 @@
     (testing "works for multiple numbers"
       (let [nums-asm (wrap-init (mapv push-constant [4 8 15 16 23 42]))]
         (is (= '(4 8 15 16 23 42)
-               (run-stack nums-asm)))))))
+               (run-stack nums-asm)))))
+    (testing "works for negative numbers"
+      (let [negs-asm (wrap-init (mapv push-constant [-1 -10 -100 -1000]))]
+        (is (= '(-1 -10 -100 -1000)
+               (run-stack negs-asm)))))))
 
 (deftest arithmetic
   (testing "add"
@@ -92,6 +96,7 @@
           [33 10] 23
           [0 10] -10
           [10 30] -20)))
+
     (testing "with multiple numbers"
       (let [sub-100-68-10 (wrap-init [(push-constant 720)
                                       (push-constant 100)
@@ -135,4 +140,82 @@
         [100 1000]  FALSE
         [100 101]   FALSE
         [1234 1235] FALSE
-        [67 200]    FALSE))))
+        [67 200]    FALSE)))
+
+  (testing "gt"
+    (let [gt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (gt)]
+                             wrap-init
+                             run-stack
+                             first))]
+      (are [pair expected] (= expected (apply gt-ffi pair))
+        [1 0]        TRUE
+        [1 -1]       TRUE
+        [100 99]     TRUE
+        [0 -1]       TRUE
+        [-100 -1000] TRUE
+
+        [0 0]       FALSE
+        [0 1]       FALSE
+        [-100 0]    FALSE
+        [1000 1001] FALSE
+        [1111 1111] FALSE)))
+
+  (testing "lt"
+    (let [lt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (lt)]
+                             wrap-init
+                             run-stack
+                             first))]
+      (are [pair expected] (= expected (apply lt-ffi pair))
+        [1 0]        FALSE
+        [1 -1]       FALSE
+        [100 99]     FALSE
+        [0 -1]       FALSE
+        [-100 -1000] FALSE
+        [0 0]        FALSE
+        [1111 1111]  FALSE
+
+        [0 1]       TRUE
+        [-100 0]    TRUE
+        [1000 1001] TRUE
+        [-100 -99]  TRUE))))
+
+(deftest boolean-operations
+  (testing "b-and"
+    (let [and-ffi (fn [x y] (-> [(push-constant x) (push-constant y) b-and]
+                              wrap-init
+                              run-stack
+                              first))]
+      (are [pair expected] (= expected (apply and-ffi pair))
+        [12 13]   12
+        [13 12]   12
+        [0 1]     0
+        [1 0]     0
+        [0 255]   0
+        [255 0]   0
+        [666 666] 666
+        [100 50]  32
+        [50 100]  32)))
+
+  (testing "b-or"
+    (let [or-ffi (fn [x y] (-> [(push-constant x) (push-constant y) b-or]
+                              wrap-init
+                              run-stack
+                              first))]
+      (are [pair expected] (= expected (apply or-ffi pair))
+        [0 1]   1
+        [1 0]   1
+        [1 12]  13
+        [12 1]  13
+        [13 25] 29
+        [25 13] 29)))
+
+  (testing "b-not"
+    (let [not-ffi (fn [x] (-> [(push-constant x) b-not]
+                              wrap-init
+                              run-stack
+                              first))]
+      (are [x expected] (= expected (not-ffi x))
+        -13   12
+        12    -13
+        -1    0
+        0     -1))))
