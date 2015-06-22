@@ -83,10 +83,10 @@
 (defn instruction-type
   [s]
   (cond
-    (re-find #"@[\-\d]+$" s)   :a-instruction
-    (re-find #"^.+[=;]" s) :c-instruction
-    (re-find #"\(.+\)$" s) :jump-target
-    (re-find #"@\S+$" s)   :a-var
+    (re-find #"^@\-?[\d]+$" s) :a-instruction
+    (re-find #"^.+[=;]" s)     :c-instruction
+    (re-find #"^\(.+\)$" s)    :jump-target
+    (re-find #"^@\S+$" s)      :a-var
     :else (throw (IllegalArgumentException.
                   (str "unknown instruction type " s)))))
 
