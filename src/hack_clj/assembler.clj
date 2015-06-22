@@ -1,22 +1,8 @@
 (ns hack-clj.assembler
-  (:require [hack-clj.parse :refer [extract code? file->lines strip-comments]]
+  (:require [hack-clj.parse :refer [extract code? file->lines strip-comments zfill]
+             :as parse]
             [clojure.string :as str]
             [clojure.java.io :as io]))
-
-(defn zfill
-  "Returns a string ending with s, padded with zeroes up to n
-  characters."
-  ([s n] (let [length (- n (count s))
-               fill (apply str (repeat length "0"))]
-           (str fill s)))
-  ([s] (zfill s 15)))
-
-(defn binary
-  [n]
-  (-> n
-    str
-    (Integer/parseInt)
-    (Integer/toString 2)))
 
 (def get-dest (partial extract #"(\w+)="))
 (def get-jump (partial extract #";(\w+)"))
@@ -97,7 +83,7 @@
 (defn instruction-type
   [s]
   (cond
-    (re-find #"@\d+$" s)   :a-instruction
+    (re-find #"@[\-\d]+$" s)   :a-instruction
     (re-find #"^.+[=;]" s) :c-instruction
     (re-find #"\(.+\)$" s) :jump-target
     (re-find #"@\S+$" s)   :a-var
@@ -122,7 +108,8 @@
 (defn compile-a-instruction
   [num]
   (let [num-str (str/replace (str num) #"@" "")
-        val (binary num-str)]
+        int (Integer/parseInt num-str)
+        val (parse/int->binstring int)]
     (->> val
       zfill
       (str "0"))))

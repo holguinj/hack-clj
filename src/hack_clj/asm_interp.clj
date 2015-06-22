@@ -1,7 +1,8 @@
 (ns hack-clj.asm-interp
   (:require [clojure.set :as set]
             [clojure.string :as str]
-            [hack-clj.assembler :as asm]))
+            [hack-clj.assembler :as asm]
+            [hack-clj.parse :refer [int->binstring binstring->int flip-bin-chars]]))
 
 (defn parse-instruction
   "Given a de-sugared ASM instruction, return a variant of the form [type data].
@@ -93,38 +94,6 @@
       A? (set-register :A val)
       D? (set-register :D val)
       M? (set-register :M val))))
-
-(defn flip-bin-chars
-  [bs]
-  (->> bs
-    (map {\0 \1, \1 0})
-    (apply str)))
-
-(defn int->binstring
-  "Returns a 15-bit twos complement binary string representation of the given int."
-  [n]
-  {:pre [(integer? n)
-         (<= -32767 n 32767)]}
-  (if (neg? n)
-    (let [complement  (-> (- n)
-                        int->binstring
-                        flip-bin-chars
-                        (Integer/parseInt 2)
-                        inc)]
-      (int->binstring complement))
-    ;; else n >= 0
-    (asm/zfill (Integer/toString n 2))))
-
-(defn binstring->int
-  [bs]
-  {:pre [(= 15 (count bs))]}
-  (if (= \1 (first bs)) ;; number is negative
-    (-> bs
-      flip-bin-chars
-      binstring->int
-      inc
-      (* -1))
-    (Integer/parseInt bs 2)))
 
 (defn b-not
   "Int -> Int. 16-bit binary NOT."

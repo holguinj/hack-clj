@@ -4,14 +4,6 @@
             [hack-clj.parse :as parse]
             [clojure.java.io :as io]))
 
-(deftest zfill-test
-  (testing "can be called with arity 1"
-    (let [res (zfill "x")]
-      (is (= "00000000000000x" res))))
-  (testing "can be called with arity 2"
-    (let [res (zfill "x" 5)]
-      (is (= "0000x")))))
-
 (deftest parse-c-instruction-test
   (testing "book examples"
     (is (= (parse-c-instruction "MD=M+1")
@@ -78,7 +70,9 @@
            (compile-instruction "D=D-A"))))
   (testing "A-instructions"
     (is (= "0000000000000111"
-           (compile-instruction "@7")))))
+           (compile-instruction "@7")))
+    (is (= "0111111111111001"
+           (compile-instruction "@-7")))))
 
 (deftest jump-map-test
   (is (= {"FOO" 0
@@ -101,8 +95,9 @@
             "baz"   18
             "blorp" 123}
            (var-map {"quux" 1
-                     "blorp" 123} ["D=0" "@foo" "M=1" "@bar" "MD=D"
-                                   "@quux" "0;jmp" "@baz" "1;JEQ" "@blorp"])))))
+                     "blorp" 123}
+                    ["D=0" "@foo" "M=1" "@bar" "MD=D"
+                     "@quux" "0;jmp" "@baz" "1;JEQ" "@blorp"])))))
 
 (deftest symbol-map-test
   (is (= (merge {"sys.init" 0

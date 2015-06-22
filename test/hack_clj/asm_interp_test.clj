@@ -20,6 +20,7 @@
   (are [code parsed] (= parsed (parse-instruction code))
     "0;JMP" [:c-instruction {:comp "0", :jump "JMP"}]
     "@12"   [:a-instruction 12]
+    "@-13"  [:a-instruction -13]
     "D;JGT" [:c-instruction {:comp "D", :jump "JGT"}]
     "D=M"   [:c-instruction {:dest "D", :comp "M"}]
     "M=1"   [:c-instruction {:dest "M", :comp "1"}]
@@ -97,11 +98,6 @@
                (get-register mem :M)
                (get mem 1)))))))
 
-(deftest binary-strings-test
-  (testing "round-trippable"
-    (doseq [i (range -100 100)]
-      (is (= i (-> i int->binstring binstring->int))))))
-
 (deftest binary-ops-test
   (testing "b-not"
     (testing "is surjective"
@@ -137,20 +133,37 @@
       [25 13] 29)))
 
 (deftest compute-test
-  (let [mem (-> blank-ram
-              (set-register :A 42)
-              (set-register :D 8)
-              (set-register :M 666))]
-    (are [comp val] (= val (compute mem comp))
-      "0"   0
-      "A"   42
-      "D"   8
-      "M"   666
-      "M-D" (- 666 8)
-      "D-M" (- 8 666)
-      "D+M" (+ 666 8)
-      "D+1" 9
-      "-M"  -666)))
+  (testing "with natural numbers"
+    (let [mem (-> blank-ram
+                (set-register :A 42)
+                (set-register :D 8)
+                (set-register :M 666))]
+      (are [comp val] (= val (compute mem comp))
+        "0"   0
+        "A"   42
+        "D"   8
+        "M"   666
+        "M-D" (- 666 8)
+        "D-M" (- 8 666)
+        "D+M" (+ 666 8)
+        "D+1" 9
+        "-M"  -666)))
+  (testing "including negative numbers"
+    (let [mem (-> blank-ram
+                (set-register :A -10)
+                (set-register :D -4)
+                (set-register :M 3))]
+      (are [comp val] (= val (compute mem comp))
+        "A"   -10
+        "D"   -4
+        "M"   3
+        "M-D" (- 3 -4)
+        "D-M" (- -4 3)
+        "A-D" (- -10 -4)
+        "D-A" (- -4 -10)
+        "D+M" (+ -4 3)
+        "D+1" -3
+        "-M"  -3))))
 
 (deftest jump-test
   (are [comparison+val res] (= res (apply jump? comparison+val))
