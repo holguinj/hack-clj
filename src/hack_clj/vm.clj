@@ -13,6 +13,7 @@
 
 (defn wrap-init
   [prog]
+  {:post [(every? string? %)]}
   (flattenv
    ["@256"
     "D=A"
@@ -22,10 +23,12 @@
 
 (defn a-load
   [n]
+  {:pre [(some? n)]}
   (str "@" n))
 
 (defn d-load
   [n]
+  {:pre [(some? n)]}
   [(a-load n)
    "D=A"])
 
@@ -38,6 +41,7 @@
 
 (defn push-constant
   [n]
+  {:pre [(integer? n)]}
   (flattenv
    [(d-load n) ;; D=n
     push-d]))
@@ -61,6 +65,7 @@
   "Pops into D, then pops into M, then executes the instructions and increments the pointer.
   You should store the result of this computation in M."
   [& insts]
+  {:post [(every? string? %)]}
   (flattenv
    [pop-d   ;; D=stack[0]
     dec-sp
@@ -87,6 +92,7 @@
 
 (defn do-jump
   [label]
+  {:pre [(some? label)]}
   (flattenv
    [(a-load label)
     "0;JMP"]))
@@ -101,6 +107,8 @@
 
 (defn label
   [s]
+  {:pre [(or (string? s)
+             (symbol? s))]}
   (str "(" s ")"))
 
 (defn comparison-fn
@@ -158,8 +166,9 @@
 
 (defn push-segment
   [segment offset]
+  {:pre [(>= offset 0)]}
   (flattenv
-   (let [seg-base (get segment-offsets segment)]
+   (if-let [seg-base (get segment-offsets segment)]
      [(a-load seg-base)
       "A=M"
       "D=A"
@@ -170,7 +179,9 @@
       pop-d
       "@13"
       "A=M"
-      "M=D"])))
+      "M=D"]
+     ;; else, we can't find the offset
+     (throw (IllegalArgumentException. (str "'" segment "' is not a known segment."))))))
 
 (defn push-temp
   [offset]
@@ -184,6 +195,8 @@
 
 (defn push
   [{:keys [segment offset]}]
+  {:pre [(string? segment)
+         (integer? offset)]}
   (flattenv
    (cond
      (= "constant" segment)
