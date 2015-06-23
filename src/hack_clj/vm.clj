@@ -149,3 +149,51 @@
    [pop-d
     "D=!D"
     push-d]))
+
+(def segment-offsets
+  {"local"    1
+   "argument" 2
+   "this"     3
+   "that"     4})
+
+(defn push-segment
+  [segment offset]
+  (flattenv
+   (let [seg-base (get segment-offsets segment)]
+     [(a-load seg-base)
+      "A=M"
+      "D=A"
+      (a-load offset)
+      "D=D+A"
+      "@13"
+      "M=D"
+      pop-d
+      "@13"
+      "A=M"
+      "M=D"])))
+
+(defn push-temp
+  [offset]
+  {:pre [(<= 0 offset 7)]}
+  (flattenv
+   (let [temp-base 5
+         address (+ temp-base offset)]
+     [pop-d
+      (a-load address)
+      "M=D"])))
+
+(defn push
+  [{:keys [segment offset]}]
+  (flattenv
+   (cond
+     (= "constant" segment)
+     (push-constant offset)
+
+     (= "temp" segment)
+     (push-temp offset)
+
+     (contains? segment-offsets segment)
+     (push-segment segment offset)
+
+     :else
+     (throw (IllegalArgumentException. (str "Can't push to the '" segment "' segment."))))))

@@ -20,6 +20,7 @@
         (let [mem (run-ffi no-out-asm)]
           (is (= {16 42, 17 666}
                  (dissoc mem :vars :registers)))))))
+
   (testing "when 'out' is in the symbol table"
     (let [inc-asm ["@16" "D=M" "@out" "M=D+1"]]
       (testing "returns the value of 'out'"
@@ -36,22 +37,6 @@
       sort
       (map second))))
 
-(deftest constants
-  (testing "Push constant"
-    (testing "works for one number"
-      (is (= '(33)
-             (run-stack (wrap-init (push-constant 33)))))
-      (is (= '(42)
-             (run-stack (wrap-init (push-constant 42))))))
-    (testing "works for multiple numbers"
-      (let [nums-asm (wrap-init (mapv push-constant [4 8 15 16 23 42]))]
-        (is (= '(4 8 15 16 23 42)
-               (run-stack nums-asm)))))
-    (testing "works for negative numbers"
-      (let [negs-asm (wrap-init (mapv push-constant [-1 -10 -100 -1000]))]
-        (is (= '(-1 -10 -100 -1000)
-               (run-stack negs-asm)))))))
-
 (deftest arithmetic
   (testing "add"
     (testing "two numbers"
@@ -60,6 +45,7 @@
                                   (push-constant 5)
                                   add])]
           (is (= '(8) (run-stack add-3-5)))))
+
       (testing "with other numbers on the stack"
         (let [add-3-5-ignore-12 (wrap-init [(push-constant 12)
                                             (push-constant 3)
@@ -92,10 +78,10 @@
                                 first))]
         (are [pair expected] (= expected (apply sub-ffi pair))
           [100 99] 1
-          [1 1] 0
-          [33 10] 23
-          [0 10] -10
-          [10 30] -20)))
+          [1 1]    0
+          [33 10]  23
+          [0 10]   -10
+          [10 30]  -20)))
 
     (testing "with multiple numbers"
       (let [sub-100-68-10 (wrap-init [(push-constant 720)
@@ -111,11 +97,13 @@
       (let [neg-100 (wrap-init [(push-constant 100)
                                 neg])]
         (is (= '(-100) (run-stack neg-100)))))
+
     (testing "with two numbers on the stack"
       (let [neg-50 (wrap-init [(push-constant 301)
                                (push-constant 50)
                                neg])]
         (is (= '(301 -50) (run-stack neg-50)))))
+
     (testing "is surjective"
       (let [neg-neg-12 (wrap-init [(push-constant 12)
                                    neg
@@ -219,3 +207,72 @@
         12    -13
         -1    0
         0     -1))))
+
+(deftest push-test
+  (testing "pushing"
+    (testing "numbers into the temp segment"
+      (let [mem (-> [(push-constant 1)
+                     (push {:segment "temp", :offset 0})
+                     (push-constant 1)
+                     (push {:segment "temp", :offset 1})
+                     (push-constant 2)
+                     (push {:segment "temp", :offset 2})
+                     (push-constant 3)
+                     (push {:segment "temp", :offset 3})
+                     (push-constant 5)
+                     (push {:segment "temp", :offset 4})
+                     (push-constant 8)
+                     (push {:segment "temp", :offset 5})
+                     (push-constant 13)
+                     (push {:segment "temp", :offset 6})]
+                  wrap-init
+                  run-ffi)
+            temp-segment (->> (select-keys mem (range 5 13))
+                           sort
+                           (mapv second))]
+        (testing "results in an empty stack"
+          (is (= 256 (get mem 0))))
+
+        (testing "leaves them all in the expected place"
+          (is (= [1 1 2 3 5 8 13]
+                 temp-segment)))))
+
+    (testing "constants"
+      (testing "works for one number"
+        (is (= '(33)
+               (run-stack (wrap-init (push {:segment "constant", :offset 33})))))
+        (is (= '(42)
+               (run-stack (wrap-init (push {:segment "constant", :offset 42}))))))
+
+      (testing "works for multiple numbers"
+        (let [nums-asm (wrap-init (mapv #(push {:segment "constant", :offset %})
+                                        [4 8 15 16 23 42]))]
+          (is (= '(4 8 15 16 23 42)
+                 (run-stack nums-asm)))))
+
+      (testing "works for negative numbers"
+        (let [negs-asm (wrap-init (mapv #(push {:segment "constant", :offset %})
+                                        [-1 -10 -100 -1000]))]
+          (is (= '(-1 -10 -100 -1000)
+                 (run-stack negs-asm))))))
+
+    (testing "with dynamic segments:"
+      (let [set-mem (fn [loc val] (flattenv [(d-load val) (a-load loc) "M=D"]))]
+        (testing "pushing to the local segment"
+          (let [mem (-> [(set-mem 1 100)
+                         (push-constant 23)
+                         (push {:segment "local", :offset 0})
+                         (push-constant 29)
+                         (push {:segment "local", :offset 1})
+                         (push-constant 31)
+                         (push {:segment "local", :offset 2})]
+                      wrap-init
+                      run-ffi)
+                local-segment (->> (select-keys mem (range 100 103))
+                                sort
+                                (mapv second))]
+            (testing "leaves the stack empty"
+              (is (= 256 (get mem 0))))
+
+            (testing "leaves the correct values in the segment"
+              (is (= [23 29 31] local-segment)))))))))
