@@ -160,22 +160,22 @@
 
 (defn pop-segment
   [segment offset]
-  {:pre [(>= offset 0)]}
+  {:pre [(>= offset 0)
+         (contains? segment-offsets segment)]}
   (flattenv
-   (if-let [seg-base (get segment-offsets segment)]
+   (let [seg-base (get segment-offsets segment)
+         temp 13]
      [(a-load seg-base)
       "A=M"
       "D=A"
       (a-load offset)
       "D=D+A"
-      "@13"
+      (a-load temp)
       "M=D"
       pop-d
-      "@13"
+      (a-load temp)
       "A=M"
-      "M=D"]
-     ;; else, we can't find the offset
-     (throw (IllegalArgumentException. (str "'" segment "' is not a known segment."))))))
+      "M=D"])))
 
 (defn pop-temp
   [offset]
