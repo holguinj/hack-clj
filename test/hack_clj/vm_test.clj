@@ -1,7 +1,8 @@
 (ns hack-clj.vm-test
   (:require [hack-clj.vm :refer :all]
             [hack-clj.asm-interp :as interp]
-            [clojure.test :refer :all]))
+            [clojure.test :refer :all])
+  (:refer-clojure :exclude [pop]))
 
 (defn run-ffi
   "Given a vector of hack assembly (including sugar) and an optional map of
@@ -28,14 +29,15 @@
         (is (= -11 (run-ffi inc-asm {16 -12})))))))
 
 (defn run-stack
-  [code]
-  (let [final-mem (interp/run code)
-        sp (get final-mem 0)
-        stack-ptrs (range 256 sp)
-        stack-map (select-keys final-mem stack-ptrs)]
-    (->> stack-map
-      sort
-      (map second))))
+  ([code] (run-stack code {}))
+  ([code init-vars]
+   (let [final-mem (interp/run code init-vars)
+         sp (get final-mem 0)
+         stack-ptrs (range 256 sp)
+         stack-map (select-keys final-mem stack-ptrs)]
+     (->> stack-map
+       sort
+       (map second)))))
 
 (deftest arithmetic
   (testing "add"
@@ -208,23 +210,30 @@
         -1    0
         0     -1))))
 
-(deftest push-test
-  (testing "pushing"
+(defn set-mem
+  [loc val]
+  (flattenv
+   [(d-load val)
+    (a-load loc)
+    "M=D"]))
+
+(deftest pop-test
+  (testing "popping"
     (testing "numbers into the temp segment"
       (let [mem (-> [(push-constant 1)
-                     (push {:segment "temp", :offset 0})
+                     (pop {:segment "temp", :offset 0})
                      (push-constant 1)
-                     (push {:segment "temp", :offset 1})
+                     (pop {:segment "temp", :offset 1})
                      (push-constant 2)
-                     (push {:segment "temp", :offset 2})
+                     (pop {:segment "temp", :offset 2})
                      (push-constant 3)
-                     (push {:segment "temp", :offset 3})
+                     (pop {:segment "temp", :offset 3})
                      (push-constant 5)
-                     (push {:segment "temp", :offset 4})
+                     (pop {:segment "temp", :offset 4})
                      (push-constant 8)
-                     (push {:segment "temp", :offset 5})
+                     (pop {:segment "temp", :offset 5})
                      (push-constant 13)
-                     (push {:segment "temp", :offset 6})]
+                     (pop {:segment "temp", :offset 6})]
                   wrap-init
                   run-ffi)
             temp-segment (->> (select-keys mem (range 5 13))
@@ -237,6 +246,90 @@
           (is (= [1 1 2 3 5 8 13]
                  temp-segment)))))
 
+    (testing "pointers:"
+      (testing "with offset 0"
+        (let [mem (-> [(push-constant 666)
+                       (pop {:segment "pointer", :offset 0})
+                       (push-constant 333)
+                       (pop {:segment "this", :offset 0})
+                       (push-constant 999)
+                       (pop {:segment "this", :offset 1})]
+                    wrap-init
+                    run-ffi)]
+          (testing "leaves the stack empty"
+            (is (= 256 (get mem 0))))
+
+          (testing "correctly initializes the 'this' segment"
+            (is (= 666 (get mem 3)))
+            (let [base 666]
+              (is (= 333
+                     (get mem (+ base 0))))
+              (is (= 999
+                     (get mem (+ base 1))))))))
+
+      (testing "with offset 1"
+        (let [mem (-> [(push-constant 300)
+                       (pop {:segment "pointer", :offset 1})
+                       (push-constant 27)
+                       (pop {:segment "that", :offset 0})
+                       (push-constant 29)
+                       (pop {:segment "that", :offset 1})]
+                    wrap-init
+                    run-ffi)]
+          (testing "leaves the stack empty"
+            (is (= 256 (get mem 0))))
+
+          (testing "correctly initializes the 'this' segment"
+            (is (= 300 (get mem 4)))
+            (let [base 300]
+              (is (= 27
+                     (get mem (+ base 0))))
+              (is (= 29
+                     (get mem (+ base 1)))))))))
+
+    (testing "to the static segment"
+      (let [mem (-> [(push-constant 10)
+                     (pop {:segment "static", :offset 0})
+                     (push-constant 20)
+                     (pop {:segment "static", :offset 1})
+                     (push-constant 30)
+                     (pop {:segment "static", :offset 2})
+                     (push-constant 40)
+                     (pop {:segment "static", :offset 3})]
+                  wrap-init
+                  run-ffi)]
+        (testing "results in an empty stack"
+          (is (= 256 (get mem 0))))
+
+        (testing "creates the appropriate variables"
+          (are [var val] (= val (get-in mem [:vars var]))
+            "Anonymous.0" 10
+            "Anonymous.1" 20
+            "Anonymous.2" 30
+            "Anonymous.3" 40))))
+
+    (testing "with dynamic segments:"
+      (testing "pushing to the local segment"
+        (let [mem (-> [(set-mem 1 100)
+                       (push-constant 23)
+                       (pop {:segment "local", :offset 0})
+                       (push-constant 29)
+                       (pop {:segment "local", :offset 1})
+                       (push-constant 31)
+                       (pop {:segment "local", :offset 2})]
+                    wrap-init
+                    run-ffi)
+              local-segment (->> (select-keys mem (range 100 103))
+                              sort
+                              (mapv second))]
+          (testing "leaves the stack empty"
+            (is (= 256 (get mem 0))))
+
+          (testing "leaves the correct values in the segment"
+            (is (= [23 29 31] local-segment))))))))
+
+(deftest push-test
+  (testing "pushing"
     (testing "constants"
       (testing "works for one number"
         (is (= '(33)
@@ -256,23 +349,45 @@
           (is (= '(-1 -10 -100 -1000)
                  (run-stack negs-asm))))))
 
-    (testing "with dynamic segments:"
-      (let [set-mem (fn [loc val] (flattenv [(d-load val) (a-load loc) "M=D"]))]
-        (testing "pushing to the local segment"
-          (let [mem (-> [(set-mem 1 100)
-                         (push-constant 23)
-                         (push {:segment "local", :offset 0})
-                         (push-constant 29)
-                         (push {:segment "local", :offset 1})
-                         (push-constant 31)
-                         (push {:segment "local", :offset 2})]
-                      wrap-init
-                      run-ffi)
-                local-segment (->> (select-keys mem (range 100 103))
-                                sort
-                                (mapv second))]
-            (testing "leaves the stack empty"
-              (is (= 256 (get mem 0))))
+    (testing "from the temp segment"
+      (let [stack (-> [(set-mem 5 11)
+                       (push {:segment "temp", :offset 0})
+                       (set-mem 6 12)
+                       (push {:segment "temp", :offset 1})
+                       (set-mem 7 13)
+                       (push {:segment "temp", :offset 2})
+                       (set-mem 8 14)
+                       (push {:segment "temp", :offset 3})
+                       (set-mem 9 15)
+                       (push {:segment "temp", :offset 4})]
+                    wrap-init
+                    run-stack)]
+        (testing "places the values on the stack"
+          (is (= '(11 12 13 14 15) stack)))))
 
-            (testing "leaves the correct values in the segment"
-              (is (= [23 29 31] local-segment)))))))))
+    (testing "from the 'static' segment"
+      (let [stack (-> [(push-constant 32)
+                       (push {:segment "static", :offset 2})
+                       (push-constant 52)]
+                    wrap-init
+                    (run-stack {"Anonymous.2" 42}))]
+        (= [32 42 52] stack)))
+
+    (testing "pointers:"
+      (testing "this"
+        (let [stack (-> [(set-mem 3 61)
+                         (push-constant 310)
+                         (push {:segment "pointer", :offset 0})
+                         (push-constant 11)]
+                      wrap-init
+                      run-stack)]
+          (= [310 61 11] stack)))
+
+      (testing "that"
+        (let [stack (-> [(set-mem 4 217)
+                         (push-constant 333)
+                         (push {:segment "pointer", :offset 1})
+                         (push-constant 213)]
+                      wrap-init
+                      run-stack)]
+          (= [333 217 213] stack))))))

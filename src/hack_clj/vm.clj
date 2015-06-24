@@ -1,5 +1,6 @@
 (ns hack-clj.vm
-  (:require [hack-clj.parse :as parse]))
+  (:require [hack-clj.parse :as parse])
+  (:refer-clojure :exclude [pop]))
 
 (def flattenv (comp vec flatten))
 
@@ -38,13 +39,6 @@
    "M=D"     ;; M[256]=n
    "@SP"     ;; A=0
    "M=M+1"]) ;; SP=SP+1
-
-(defn push-constant
-  [n]
-  {:pre [(integer? n)]}
-  (flattenv
-   [(d-load n) ;; D=n
-    push-d]))
 
 (def dec-sp
   ["@SP"
@@ -164,7 +158,7 @@
    "this"     3
    "that"     4})
 
-(defn push-segment
+(defn pop-segment
   [segment offset]
   {:pre [(>= offset 0)]}
   (flattenv
@@ -183,7 +177,7 @@
      ;; else, we can't find the offset
      (throw (IllegalArgumentException. (str "'" segment "' is not a known segment."))))))
 
-(defn push-temp
+(defn pop-temp
   [offset]
   {:pre [(<= 0 offset 7)]}
   (flattenv
@@ -193,20 +187,107 @@
       (a-load address)
       "M=D"])))
 
+(defn pop-pointer
+  [offset]
+  {:pre [(contains? #{0 1} offset)]}
+  (flattenv
+   (let [address (case offset
+                   0 "THIS"
+                   1 "THAT")]
+     [pop-d
+      (a-load address)
+      "M=D"])))
+
+(defn pop-static
+  ([offset] (pop-static "Anonymous" offset))
+  ([ns offset]
+   {:pre [(string? ns)
+          (integer? offset)]}
+   (flattenv
+    (let [sym (str ns "." offset)]
+      [pop-d
+       (a-load sym)
+       "M=D"]))))
+
+(defn pop
+  [{:keys [segment offset]}]
+  {:pre [(string? segment)
+         (integer? offset)]}
+  (flattenv
+   (cond
+     (= "pointer" segment)
+     (pop-pointer offset)
+
+     (= "temp" segment)
+     (pop-temp offset)
+
+     (= "static" segment)
+     (pop-static offset)
+
+     (contains? segment-offsets segment)
+     (pop-segment segment offset)
+
+     :else
+     (throw (IllegalArgumentException. (str "Can't pop from the '" segment "' segment."))))))
+
+(defn push-constant
+  [n]
+  {:pre [(integer? n)]}
+  (flattenv
+   [(d-load n)
+    push-d]))
+
+(defn push-temp
+  [offset]
+  {:pre [(<= 0 offset 7)]}
+  (flattenv
+   (let [base 5
+         address (+ base offset)]
+     [(a-load address)
+      "D=M"
+      push-d])))
+
+(defn push-static
+  ([offset] (push-static "Anonymous" offset))
+  ([ns offset]
+   {:pre [(string? ns)
+          (integer? offset)]}
+   (flattenv
+    (let [sym (str ns "." offset)]
+      [(a-load sym)
+       "D=M"
+       push-d]))))
+
+(defn push-pointer
+  [offset]
+  {:pre [(contains? #{0 1} offset)]}
+  (flattenv
+   (let [address (case offset
+                   0 "THIS"
+                   1 "THAT")]
+     [(a-load address)
+      "D=M"
+      push-d])))
+
 (defn push
   [{:keys [segment offset]}]
   {:pre [(string? segment)
          (integer? offset)]}
   (flattenv
    (cond
+     (= "static" segment)
+     (push-static offset)
+
      (= "constant" segment)
      (push-constant offset)
+
+     (= "pointer" segment)
+     (push-pointer offset)
 
      (= "temp" segment)
      (push-temp offset)
 
-     (contains? segment-offsets segment)
-     (push-segment segment offset)
+     ;; TODO implement dynamic segment push
 
      :else
      (throw (IllegalArgumentException. (str "Can't push to the '" segment "' segment."))))))
