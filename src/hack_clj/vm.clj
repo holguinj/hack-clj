@@ -269,6 +269,20 @@
       "D=M"
       push-d])))
 
+(defn push-segment
+  [segment offset]
+  {:pre [(contains? segment-offsets segment)
+         (>= offset 0)]}
+  (flattenv
+   (let [pointer (get segment-offsets segment)
+         temp 13]
+     [(a-load pointer)
+      "D=M"
+      (a-load offset)
+      "A=D+A"
+      "D=M"
+      push-d])))
+
 (defn push
   [{:keys [segment offset]}]
   {:pre [(string? segment)
@@ -287,7 +301,8 @@
      (= "temp" segment)
      (push-temp offset)
 
-     ;; TODO implement dynamic segment push
+     (contains? segment-offsets segment)
+     (push-segment segment offset)
 
      :else
      (throw (IllegalArgumentException. (str "Can't push to the '" segment "' segment."))))))

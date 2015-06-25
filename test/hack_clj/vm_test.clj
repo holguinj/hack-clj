@@ -7,11 +7,11 @@
             [clojure.test.check.properties :as prop])
   (:refer-clojure :exclude [pop]))
 
-(defn run-ffi
+(defn run-mem
   "Given a vector of hack assembly (including sugar) and an optional map of
   variables, call the given code and return the final value for the variable
   'out'. If there is no 'out', return all the vars."
-  ([code] (run-ffi code {}))
+  ([code] (run-mem code {}))
   ([code vars]
    (let [results (interp/run code vars)]
      (get-in results [:vars "out"] results))))
@@ -21,31 +21,39 @@
   (testing "leaves the stack empty"
     (is (= 256 (get mem 0)))))
 
-(deftest run-ffi-test
+(deftest run-mem-test
   (testing "when 'out' is not in the symbol table"
     (let [no-out-asm ["@41"  "D=A+1" "@16" "M=D"
                       "@667" "D=A-1" "@17" "M=D"]]
       (testing "returns all the memory"
-        (let [mem (run-ffi no-out-asm)]
+        (let [mem (run-mem no-out-asm)]
           (is (= {16 42, 17 666}
                  (dissoc mem :vars :registers)))))))
 
   (testing "when 'out' is in the symbol table"
     (let [inc-asm ["@16" "D=M" "@out" "M=D+1"]]
       (testing "returns the value of 'out'"
-        (is (= 43 (run-ffi inc-asm {16 42})))
-        (is (= -11 (run-ffi inc-asm {16 -12})))))))
+        (is (= 43 (run-mem inc-asm {16 42})))
+        (is (= -11 (run-mem inc-asm {16 -12})))))))
 
 (defn run-stack
-  ([code] (run-stack code {}))
-  ([code init-vars]
-   (let [final-mem (interp/run code init-vars)
-         sp (get final-mem 0)
-         stack-ptrs (range 256 sp)
-         stack-map (select-keys final-mem stack-ptrs)]
-     (->> stack-map
-       sort
-       (map second)))))
+  [code]
+  (let [final-mem (interp/run code)
+        sp (get final-mem 0)
+        stack-ptrs (range 256 sp)
+        stack-map (select-keys final-mem stack-ptrs)]
+    (->> stack-map
+      sort
+      (map second))))
+
+(defn wrap-vars
+  [code vars]
+  (flattenv
+   [(for [[var val] vars]
+      [(d-load val)
+       (a-load var)
+       "M=D"])
+    code]))
 
 (def gen-short
   (gen/choose java.lang.Short/MIN_VALUE
@@ -260,7 +268,7 @@
                      (push-constant 13)
                      (pop {:segment "temp", :offset 6})]
                   wrap-init
-                  run-ffi)
+                  run-mem)
             temp-segment (->> (select-keys mem (range 5 13))
                            sort
                            (mapv second))]
@@ -280,7 +288,7 @@
                        (push-constant 999)
                        (pop {:segment "this", :offset 1})]
                     wrap-init
-                    run-ffi)]
+                    run-mem)]
           (is-empty-stack? mem)
 
           (testing "correctly initializes the 'this' segment"
@@ -299,7 +307,7 @@
                        (push-constant 29)
                        (pop {:segment "that", :offset 1})]
                     wrap-init
-                    run-ffi)]
+                    run-mem)]
           (is-empty-stack? mem)
 
           (testing "correctly initializes the 'this' segment"
@@ -320,7 +328,7 @@
                      (push-constant 40)
                      (pop {:segment "static", :offset 3})]
                   wrap-init
-                  run-ffi)]
+                  run-mem)]
         (testing "results in an empty stack"
           (is (= 256 (get mem 0))))
 
@@ -341,7 +349,7 @@
                        (push-constant 31)
                        (pop {:segment "local", :offset 2})]
                     wrap-init
-                    run-ffi)
+                    run-mem)
               local-segment (->> (select-keys mem (range 100 103))
                               sort
                               (mapv second))]
@@ -391,9 +399,10 @@
       (let [stack (-> [(push-constant 32)
                        (push {:segment "static", :offset 2})
                        (push-constant 52)]
+                    (wrap-vars {"Anonymous.2" 42})
                     wrap-init
-                    (run-stack {"Anonymous.2" 42}))]
-        (= [32 42 52] stack)))
+                    run-stack)]
+        (is (= [32 42 52] stack))))
 
     (testing "pointers:"
       (testing "this"
@@ -403,7 +412,7 @@
                          (push-constant 11)]
                       wrap-init
                       run-stack)]
-          (= [310 61 11] stack)))
+          (is (= [310 61 11] stack))))
 
       (testing "that"
         (let [stack (-> [(set-mem 4 217)
@@ -412,4 +421,14 @@
                          (push-constant 213)]
                       wrap-init
                       run-stack)]
-          (= [333 217 213] stack))))))
+          (is (= [333 217 213] stack)))))
+
+    (testing "from the dynamic segments:"
+      (testing "local"
+        (let [stack (-> [(set-mem 1 777)
+                         (set-mem 779 1234)
+                         (push {:segment "local", :offset 2})]
+                      wrap-init
+                      run-stack)]
+
+          (is (= [1234] stack)))))))
