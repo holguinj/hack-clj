@@ -286,7 +286,7 @@
 (defn push
   [{:keys [segment offset]}]
   {:pre [(string? segment)
-         (>= offset 0)]}
+         (integer? 0)]}
   (flattenv
    (cond
      (= "static" segment)
