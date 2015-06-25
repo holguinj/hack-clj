@@ -406,7 +406,7 @@
 
     (testing "pointers:"
       (testing "this"
-        (let [stack (-> [(set-mem 3 61)
+        (let [stack (-> [(set-mem 3 61) ;; init this pointer
                          (push-constant 310)
                          (push {:segment "pointer", :offset 0})
                          (push-constant 11)]
@@ -415,7 +415,7 @@
           (is (= [310 61 11] stack))))
 
       (testing "that"
-        (let [stack (-> [(set-mem 4 217)
+        (let [stack (-> [(set-mem 4 217) ;; init that pointer
                          (push-constant 333)
                          (push {:segment "pointer", :offset 1})
                          (push-constant 213)]
@@ -425,10 +425,24 @@
 
     (testing "from the dynamic segments:"
       (testing "local"
-        (let [stack (-> [(set-mem 1 777)
-                         (set-mem 779 1234)
+        (let [stack (-> [(set-mem 1 777) ;; init local pointer
+                         (set-mem 779 1234) ;; set offset 2 = 1234
                          (push {:segment "local", :offset 2})]
                       wrap-init
                       run-stack)]
 
-          (is (= [1234] stack)))))))
+          (is (= [1234] stack))))
+
+      (testing "argument"
+        (let [stack (-> [(set-mem 2 900) ;; init argument pointer
+                         (set-mem 900 71) ;;set offset 0 = 71
+                         (push-constant 70)
+                         (push {:segment "argument", :offset 0})
+                         (set-mem 901 73) ;; set offset 1 = 73
+                         (push {:segment "argument", :offset 1})
+                         (set-mem 902 75) ;; set offset 2 = 75
+                         (push {:segment "argument", :offset 2})
+                         (push-constant 76)]
+                      wrap-init
+                      run-stack)]
+          (is (= [70 71 73 75 76] stack)))))))
