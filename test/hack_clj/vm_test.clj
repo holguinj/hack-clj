@@ -1,7 +1,10 @@
 (ns hack-clj.vm-test
   (:require [hack-clj.vm :refer :all]
             [hack-clj.asm-interp :as interp]
-            [clojure.test :refer :all])
+            [clojure.test :refer :all]
+            [clojure.test.check :as tc]
+            [clojure.test.check.generators :as gen]
+            [clojure.test.check.properties :as prop])
   (:refer-clojure :exclude [pop]))
 
 (defn run-ffi
@@ -12,6 +15,11 @@
   ([code vars]
    (let [results (interp/run code vars)]
      (get-in results [:vars "out"] results))))
+
+(defn is-empty-stack?
+  [mem]
+  (testing "leaves the stack empty"
+    (is (= 256 (get mem 0)))))
 
 (deftest run-ffi-test
   (testing "when 'out' is not in the symbol table"
@@ -39,6 +47,17 @@
        sort
        (map second)))))
 
+(def gen-short
+  (gen/choose java.lang.Short/MIN_VALUE
+              java.lang.Short/MAX_VALUE))
+
+(defn passes?
+  [quick-check]
+  (let [result (:result quick-check)]
+    (if (true? result)
+      (is true)
+      (is (= true quick-check)))))
+
 (deftest arithmetic
   (testing "add"
     (testing "two numbers"
@@ -64,7 +83,20 @@
                                     add
                                     add
                                     add])]
-        (is (= '(666 10) (run-stack add-1-2-3-4))))))
+        (is (= '(666 10) (run-stack add-1-2-3-4)))))
+
+    (testing "generative tests"
+      (let [add-ffi (fn [x y] (-> [(push-constant x)
+                                   (push-constant y)
+                                   add]
+                                wrap-init
+                                run-stack
+                                first))
+            add-prop (prop/for-all [x gen-short
+                                    y gen-short]
+                       (= (+ x y)
+                          (add-ffi x y)))]
+        (passes? (tc/quick-check 100 add-prop)))))
 
   (testing "sub"
     (testing "two numbers"
@@ -72,18 +104,19 @@
                                 (push-constant 5) ;; yes, this is the correct order
                                 sub])]
         (is (= '(3) (run-stack sub-8-5))))
-      (let [sub-ffi (fn [x y] (-> [(push-constant x)
-                                   (push-constant y)
-                                   sub]
-                                wrap-init
-                                run-stack
-                                first))]
-        (are [pair expected] (= expected (apply sub-ffi pair))
-          [100 99] 1
-          [1 1]    0
-          [33 10]  23
-          [0 10]   -10
-          [10 30]  -20)))
+
+      (testing "generative"
+        (let [sub-ffi (fn [x y] (-> [(push-constant x)
+                                     (push-constant y)
+                                     sub]
+                                  wrap-init
+                                  run-stack
+                                  first))
+              sub-prop (prop/for-all [x gen-short
+                                      y gen-short]
+                         (= (- x y)
+                            (sub-ffi x y)))]
+          (passes? (tc/quick-check 100 sub-prop)))))
 
     (testing "with multiple numbers"
       (let [sub-100-68-10 (wrap-init [(push-constant 720)
@@ -95,79 +128,71 @@
         (is (= '(720 42) (run-stack sub-100-68-10))))))
 
   (testing "neg"
-    (testing "with one number on the stack"
-      (let [neg-100 (wrap-init [(push-constant 100)
-                                neg])]
-        (is (= '(-100) (run-stack neg-100)))))
+    (let [neg-ffi (fn [x] (-> [(push-constant x)
+                               neg]
+                            wrap-init
+                            run-stack
+                            first))]
+      (testing "negates numbers"
+        (passes? (tc/quick-check 100
+                   (prop/for-all [x gen-short]
+                     (= (- x)
+                        (neg-ffi x))))))
+
+      (testing "is surjective"
+        (passes? (tc/quick-check 100
+                   (prop/for-all [x gen-short]
+                     (= x
+                        (neg-ffi (neg-ffi x))))))))
 
     (testing "with two numbers on the stack"
       (let [neg-50 (wrap-init [(push-constant 301)
                                (push-constant 50)
                                neg])]
-        (is (= '(301 -50) (run-stack neg-50)))))
-
-    (testing "is surjective"
-      (let [neg-neg-12 (wrap-init [(push-constant 12)
-                                   neg
-                                   neg])]
-        (is (= '(12) (run-stack neg-neg-12))))))
+        (is (= '(301 -50) (run-stack neg-50))))))
 
   (testing "eq"
     (let [eq-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (eq)]
                              wrap-init
                              run-stack
                              first))]
-      (are [pair expected] (= expected (apply eq-ffi pair))
-        [1 1]       TRUE
-        [0 0]       TRUE
-        [100 100]   TRUE
-        [-12 -12]   TRUE
-        [1234 1234] TRUE
+      (testing "negative cases"
+        (passes? (tc/quick-check 100
+                   (prop/for-all [x gen-short]
+                     (= TRUE
+                        (eq-ffi x x))))))
 
-        [1 0]       FALSE
-        [0 1]       FALSE
-        [1000 100]  FALSE
-        [100 1000]  FALSE
-        [100 101]   FALSE
-        [1234 1235] FALSE
-        [67 200]    FALSE)))
+      (testing "positive cases"
+        (passes? (tc/quick-check 100
+                   (prop/for-all [x gen-short
+                                  y gen-short]
+                     (or (= x y) ;; sadly, such-that doesn't work here
+                         (= FALSE
+                            (eq-ffi x y)))))))))
 
   (testing "gt"
     (let [gt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (gt)]
                              wrap-init
                              run-stack
                              first))]
-      (are [pair expected] (= expected (apply gt-ffi pair))
-        [1 0]        TRUE
-        [1 -1]       TRUE
-        [100 99]     TRUE
-        [0 -1]       TRUE
-        [-100 -1000] TRUE
-
-        [0 0]       FALSE
-        [0 1]       FALSE
-        [-100 0]    FALSE
-        [1000 1001] FALSE
-        [1111 1111] FALSE)))
+      (passes? (tc/quick-check 200
+                 (prop/for-all [x gen-short
+                                y gen-short]
+                   (if (> x y)
+                     (= TRUE (gt-ffi x y))
+                     (= FALSE (gt-ffi x y))))))))
 
   (testing "lt"
     (let [lt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (lt)]
                              wrap-init
                              run-stack
                              first))]
-      (are [pair expected] (= expected (apply lt-ffi pair))
-        [1 0]        FALSE
-        [1 -1]       FALSE
-        [100 99]     FALSE
-        [0 -1]       FALSE
-        [-100 -1000] FALSE
-        [0 0]        FALSE
-        [1111 1111]  FALSE
-
-        [0 1]       TRUE
-        [-100 0]    TRUE
-        [1000 1001] TRUE
-        [-100 -99]  TRUE))))
+      (passes? (tc/quick-check 200
+                 (prop/for-all [x gen-short
+                                y gen-short]
+                   (if (< x y)
+                     (= TRUE (lt-ffi x y))
+                     (= FALSE (lt-ffi x y)))))))))
 
 (deftest boolean-operations
   (testing "b-and"
@@ -256,8 +281,7 @@
                        (pop {:segment "this", :offset 1})]
                     wrap-init
                     run-ffi)]
-          (testing "leaves the stack empty"
-            (is (= 256 (get mem 0))))
+          (is-empty-stack? mem)
 
           (testing "correctly initializes the 'this' segment"
             (is (= 666 (get mem 3)))
@@ -276,8 +300,7 @@
                        (pop {:segment "that", :offset 1})]
                     wrap-init
                     run-ffi)]
-          (testing "leaves the stack empty"
-            (is (= 256 (get mem 0))))
+          (is-empty-stack? mem)
 
           (testing "correctly initializes the 'this' segment"
             (is (= 300 (get mem 4)))
@@ -322,8 +345,7 @@
               local-segment (->> (select-keys mem (range 100 103))
                               sort
                               (mapv second))]
-          (testing "leaves the stack empty"
-            (is (= 256 (get mem 0))))
+          (is-empty-stack? mem)
 
           (testing "leaves the correct values in the segment"
             (is (= [23 29 31] local-segment))))))))
@@ -332,10 +354,10 @@
   (testing "pushing"
     (testing "constants"
       (testing "works for one number"
-        (is (= '(33)
-               (run-stack (wrap-init (push {:segment "constant", :offset 33})))))
-        (is (= '(42)
-               (run-stack (wrap-init (push {:segment "constant", :offset 42}))))))
+        (passes? (tc/quick-check 100
+                   (prop/for-all [x gen-short]
+                     (= [x]
+                        (run-stack (wrap-init (push {:segment "constant", :offset x}))))))))
 
       (testing "works for multiple numbers"
         (let [nums-asm (wrap-init (mapv #(push {:segment "constant", :offset %})
