@@ -164,19 +164,18 @@
                              wrap-init
                              run-stack
                              first))]
-      (testing "negative cases"
+      (testing "identity"
         (passes? (tc/quick-check 100
                    (prop/for-all [x gen-short]
-                     (= TRUE
-                        (eq-ffi x x))))))
+                     (= TRUE (eq-ffi x x))))))
 
-      (testing "positive cases"
+      (testing "false cases"
         (passes? (tc/quick-check 100
                    (prop/for-all [x gen-short
                                   y gen-short]
-                     (or (= x y) ;; sadly, such-that doesn't work here
-                         (= FALSE
-                            (eq-ffi x y)))))))))
+                     (if (= x y)
+                       (= TRUE (eq-ffi x y))
+                       (= FALSE (eq-ffi x y)))))))))
 
   (testing "gt"
     (let [gt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (gt)]
