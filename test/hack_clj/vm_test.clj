@@ -1,10 +1,12 @@
 (ns hack-clj.vm-test
-  (:require [hack-clj.vm :refer :all]
-            [hack-clj.asm-interp :as interp]
-            [clojure.test :refer :all]
+  (:require [clojure.string :as str]
             [clojure.test.check :as tc]
             [clojure.test.check.generators :as gen]
-            [clojure.test.check.properties :as prop])
+            [clojure.test.check.properties :as prop]
+            [clojure.test :refer :all]
+            [hack-clj.asm-interp :as interp]
+            [hack-clj.test-utils :as tu]
+            [hack-clj.vm :refer :all])
   (:refer-clojure :exclude [pop]))
 
 (defn run-mem
@@ -446,46 +448,45 @@
                       run-stack)]
           (is (= [70 71 73 75 76] stack)))))))
 
+(defn run-book-acceptance
+  "Takes a vector of path elements relative to dev-resources/vm"
+  [path-vec code]
+  (let [path (str/join "/" path-vec)
+        dir (str "dev-resources/vm/" path)
+        test-name (last path-vec)
+        base (str dir "/" test-name)
+        init-mem (tu/read-tst (str base ".tst"))
+        cmp-mem (tu/read-cmp (str base ".cmp"))
+        mem (run-mem code init-mem)]
+    (doseq [[loc val] cmp-mem]
+      (is (= val (get cmp-mem loc))))))
+
 (deftest acceptance-test
   (testing "BasicTest (manually parsed)"
-    (let [mem (-> [(set-mem 0 256)
-                   (set-mem 1 300)
-                   (set-mem 2 400)
-                   (set-mem 3 3000)
-                   (set-mem 4 3010)
-                   (push {:segment "constant", :offset 10})
-                   (pop {:segment "local", :offset 0})
-                   (push {:segment "constant", :offset 21})
-                   (push {:segment "constant", :offset 22})
-                   (pop {:segment "argument", :offset 2})
-                   (pop {:segment "argument", :offset 1})
-                   (push {:segment "constant", :offset 36})
-                   (pop {:segment "this", :offset 6})
-                   (push {:segment "constant", :offset 42})
-                   (push {:segment "constant", :offset 45})
-                   (pop {:segment "that", :offset 5})
-                   (pop {:segment "that", :offset 2})
-                   (push {:segment "constant", :offset 510})
-                   (pop {:segment "temp", :offset 6})
-                   (push {:segment "local", :offset 0})
-                   (push {:segment "that", :offset 5})
-                   (arithmetic "add")
-                   (push {:segment "argument", :offset 1})
-                   (arithmetic "sub")
-                   (push {:segment "this", :offset 6})
-                   (push {:segment "this", :offset 6})
-                   (arithmetic "add")
-                   (arithmetic "sub")
-                   (push {:segment "temp", :offset 6})
-                   (arithmetic "add")]
-                flattenv
-                run-mem)]
-      (are [loc val] (= val (get mem loc))
-        256 472
-        300 10
-        401 21
-        402 22
-        3006 36
-        3012 42
-        3015 45
-        11 510))))
+    (let [code (flattenv
+                [(push {:segment "constant", :offset 10})
+                 (pop {:segment "local", :offset 0})
+                 (push {:segment "constant", :offset 21})
+                 (push {:segment "constant", :offset 22})
+                 (pop {:segment "argument", :offset 2})
+                 (pop {:segment "argument", :offset 1})
+                 (push {:segment "constant", :offset 36})
+                 (pop {:segment "this", :offset 6})
+                 (push {:segment "constant", :offset 42})
+                 (push {:segment "constant", :offset 45})
+                 (pop {:segment "that", :offset 5})
+                 (pop {:segment "that", :offset 2})
+                 (push {:segment "constant", :offset 510})
+                 (pop {:segment "temp", :offset 6})
+                 (push {:segment "local", :offset 0})
+                 (push {:segment "that", :offset 5})
+                 (arithmetic "add")
+                 (push {:segment "argument", :offset 1})
+                 (arithmetic "sub")
+                 (push {:segment "this", :offset 6})
+                 (push {:segment "this", :offset 6})
+                 (arithmetic "add")
+                 (arithmetic "sub")
+                 (push {:segment "temp", :offset 6})
+                 (arithmetic "add")])]
+      (run-book-acceptance ["MemoryAccess" "BasicTest"] code))))
