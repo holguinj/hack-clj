@@ -275,6 +275,7 @@
 (defn run-states
   ([hack-asm] (run-states hack-asm {}))
   ([hack-asm init-mem]
+   {:pre [(map? init-mem)]}
    (let [program (->> hack-asm
                    asm/lines->instructions
                    (mapv instruction->interpretable)
@@ -282,4 +283,17 @@
          init-state (-> {:registers {:A 0, :D 0, :PC 0}
                          :program program}
                       (merge init-mem))]
-     (state-seq init-state))))
+     (->> (state-seq init-state)
+          (map #(dissoc % :program))))))
+
+(defn run-trace
+  ([hack-asm traces] (run-trace hack-asm traces {}))
+  ([hack-asm traces init-mem]
+   {:pre [(coll? traces)
+          (map? init-mem)]}
+   (let [states (run-states hack-asm init-mem)
+         selector #(select-keys % traces)]
+     (->> states
+          (map selector)
+          (filter not-empty)
+          distinct))))

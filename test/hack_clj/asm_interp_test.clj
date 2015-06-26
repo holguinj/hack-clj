@@ -230,12 +230,17 @@
         (is (= 5050 (get final-state sum)))
         (is (= 101 (get final-state i))))
       (testing "contains the correct sequence of intermediate states"
-        (let [sum-reductions (reductions + (range 101))
-              sum-states (->> states
-                           (map #(get % sum 0))
-                           distinct)
-              counter-states (->> states
-                               (map #(get % i 0))
-                               distinct)]
-          (is (= sum-reductions sum-states))
-          (is (= (range 102) counter-states)))))))
+        (let [sum-reductions (reductions + (range 101))]
+          (testing "manually"
+            (let [sum-states (->> states
+                                  (map #(get % sum 0))
+                                  distinct)
+                  counter-states (->> states
+                                      (map #(get % i 0))
+                                      distinct)]
+              (is (= sum-reductions sum-states))
+              (is (= (range 102) counter-states))))
+          (testing "using run-trace"
+            (let [sum-states (->> (run-trace sum-100 [sum])
+                                  (map #(get % sum 0)))]
+              (is (= sum-reductions sum-states)))))))))
