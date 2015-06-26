@@ -1,0 +1,51 @@
+(ns hack-clj.vm.analyzer
+  (:require [clojure.string :as str]
+            [hack-clj.parse]))
+
+(defn split-on-space
+  [s]
+  (str/split s #"\s+"))
+
+(def arithmetic-ops #{"add" "sub" "neg"
+                      "eq" "lt" "gt"
+                      "and" "or" "not"})
+
+(defn analyze-arithmetic
+  [op]
+  (if (contains? arithmetic-ops op)
+    [:arithmetic op]
+    (throw (IllegalArgumentException.
+            (format "'%s' is not a recognized operator." op)))))
+
+(def segments #{"local" "argument" "this" "that"
+                "pointer" "temp" "static" "constant"})
+
+(defn analyze-push-pop
+  [op segment ?offset]
+  (if (and (contains? segments segment)
+           (contains? #{"push" "pop"} op)
+           (not (and (= "pop" op)
+                     (= "constant" segment))))
+    [(keyword op) (cond-> {:segment segment}
+                    ;; TODO wrap parse-int and fail better
+                    ?offset (assoc :offset (Integer/parseInt ?offset)))]
+    (throw (IllegalArgumentException.
+            (format "Can't apply '%s' to '%s'" op segment)))))
+
+(defn analyze-line
+  [s]
+  (let [parts (split-on-space s)
+        [op arg-1 arg-2] parts]
+    (cond
+      (= 1 (count parts))
+      (analyze-arithmetic op)
+
+      (contains? #{"push" "pop"} op)
+      (analyze-push-pop op arg-1 arg-2)
+
+      :else
+      (throw (IllegalArgumentException. "Not yet implemented.")))))
+
+(defn analyze*
+  [lines]
+  (mapv analyze-line lines))
