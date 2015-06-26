@@ -152,6 +152,21 @@
     "D=!D"
     push-d]))
 
+(defn arithmetic
+  [operator]
+  (case operator
+    "add" add
+    "sub" sub
+    "neg" neg
+    "eq"  (eq)
+    "gt"  (gt)
+    "lt"  (lt)
+    "and" b-and
+    "or"  b-or
+    "not" b-not
+    (throw (IllegalArgumentException.
+            (format "'%s' is not a known operator." operator)))))
+
 (def segment-offsets
   {"local"    1
    "argument" 2

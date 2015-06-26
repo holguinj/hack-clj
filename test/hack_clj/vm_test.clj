@@ -66,20 +66,20 @@
       (is true)
       (is (= true quick-check)))))
 
-(deftest arithmetic
+(deftest arithmetic-test
   (testing "add"
     (testing "two numbers"
       (testing "empty stack otherwise"
         (let [add-3-5 (wrap-init [(push-constant 3)
                                   (push-constant 5)
-                                  add])]
+                                  (arithmetic "add")])]
           (is (= '(8) (run-stack add-3-5)))))
 
       (testing "with other numbers on the stack"
         (let [add-3-5-ignore-12 (wrap-init [(push-constant 12)
                                             (push-constant 3)
                                             (push-constant 5)
-                                            add])]
+                                            (arithmetic "add")])]
           (is (= '(12 8) (run-stack add-3-5-ignore-12))))))
 
     (testing "with multiple numbers"
@@ -88,15 +88,15 @@
                                     (push-constant 2)
                                     (push-constant 3)
                                     (push-constant 4)
-                                    add
-                                    add
-                                    add])]
+                                    (arithmetic "add")
+                                    (arithmetic "add")
+                                    (arithmetic "add")])]
         (is (= '(666 10) (run-stack add-1-2-3-4)))))
 
     (testing "generative tests"
       (let [add-ffi (fn [x y] (-> [(push-constant x)
                                    (push-constant y)
-                                   add]
+                                   (arithmetic "add")]
                                 wrap-init
                                 run-stack
                                 first))
@@ -110,13 +110,13 @@
     (testing "two numbers"
       (let [sub-8-5 (wrap-init [(push-constant 8)
                                 (push-constant 5) ;; yes, this is the correct order
-                                sub])]
+                                (arithmetic "sub")])]
         (is (= '(3) (run-stack sub-8-5))))
 
       (testing "generative"
         (let [sub-ffi (fn [x y] (-> [(push-constant x)
                                      (push-constant y)
-                                     sub]
+                                     (arithmetic "sub")]
                                   wrap-init
                                   run-stack
                                   first))
@@ -131,13 +131,13 @@
                                       (push-constant 100)
                                       (push-constant 68)
                                       (push-constant 10)
-                                      sub
-                                      sub])]
+                                      (arithmetic "sub")
+                                      (arithmetic "sub")])]
         (is (= '(720 42) (run-stack sub-100-68-10))))))
 
   (testing "neg"
     (let [neg-ffi (fn [x] (-> [(push-constant x)
-                               neg]
+                               (arithmetic "neg")]
                             wrap-init
                             run-stack
                             first))]
@@ -156,11 +156,11 @@
     (testing "with two numbers on the stack"
       (let [neg-50 (wrap-init [(push-constant 301)
                                (push-constant 50)
-                               neg])]
+                               (arithmetic "neg")])]
         (is (= '(301 -50) (run-stack neg-50))))))
 
   (testing "eq"
-    (let [eq-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (eq)]
+    (let [eq-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (arithmetic "eq")]
                              wrap-init
                              run-stack
                              first))]
@@ -178,7 +178,7 @@
                        (= FALSE (eq-ffi x y)))))))))
 
   (testing "gt"
-    (let [gt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (gt)]
+    (let [gt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (arithmetic "gt")]
                              wrap-init
                              run-stack
                              first))]
@@ -190,7 +190,7 @@
                      (= FALSE (gt-ffi x y))))))))
 
   (testing "lt"
-    (let [lt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (lt)]
+    (let [lt-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (arithmetic "lt")]
                              wrap-init
                              run-stack
                              first))]
@@ -203,7 +203,7 @@
 
 (deftest boolean-operations
   (testing "b-and"
-    (let [and-ffi (fn [x y] (-> [(push-constant x) (push-constant y) b-and]
+    (let [and-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (arithmetic "and")]
                               wrap-init
                               run-stack
                               first))]
@@ -219,7 +219,7 @@
         [50 100]  32)))
 
   (testing "b-or"
-    (let [or-ffi (fn [x y] (-> [(push-constant x) (push-constant y) b-or]
+    (let [or-ffi (fn [x y] (-> [(push-constant x) (push-constant y) (arithmetic "or")]
                               wrap-init
                               run-stack
                               first))]
@@ -232,7 +232,7 @@
         [25 13] 29)))
 
   (testing "b-not"
-    (let [not-ffi (fn [x] (-> [(push-constant x) b-not]
+    (let [not-ffi (fn [x] (-> [(push-constant x) (arithmetic "not")]
                               wrap-init
                               run-stack
                               first))]
@@ -446,8 +446,6 @@
                       run-stack)]
           (is (= [70 71 73 75 76] stack)))))))
 
-
-
 (deftest acceptance-test
   (testing "BasicTest (manually parsed)"
     (let [mem (-> [(set-mem 0 256)
@@ -471,15 +469,15 @@
                    (pop {:segment "temp", :offset 6})
                    (push {:segment "local", :offset 0})
                    (push {:segment "that", :offset 5})
-                   add
+                   (arithmetic "add")
                    (push {:segment "argument", :offset 1})
-                   sub
+                   (arithmetic "sub")
                    (push {:segment "this", :offset 6})
                    (push {:segment "this", :offset 6})
-                   add
-                   sub
+                   (arithmetic "add")
+                   (arithmetic "sub")
                    (push {:segment "temp", :offset 6})
-                   add]
+                   (arithmetic "add")]
                 flattenv
                 run-mem)]
       (are [loc val] (= val (get mem loc))
