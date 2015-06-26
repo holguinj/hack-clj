@@ -213,6 +213,9 @@
          ;; else we're out of instructions
          ram)))))
 
+{:registers {:A 0, :D 0, :PC 0}
+ :program []}
+
 (defn map-keys
   [f m]
   (->> m
@@ -238,3 +241,45 @@
 
 ;; TODO
 ;; consider using a vector for ram
+
+;; Experimental lazy seq of states
+
+(defn next-state
+  [state]
+  (let [{:keys [program registers]} state]
+    (if-let [[type instruction] (get program (:PC registers))]
+      (case type
+        :a-instruction (-> state
+                         (update-in [:registers :PC] inc)
+                         (set-register :A instruction))
+        :assignment (let [val (compute state (:comp instruction))
+                          dest (:dest instruction)]
+                      (-> state
+                        (update-in [:registers :PC] inc)
+                        (set-registers dest val)))
+        :jump (let [val (compute state (:comp instruction))
+                    comparison (:jump instruction)
+                    next-pc (if (jump? comparison val)
+                              (get-register state :A)
+                              (inc (get-in state [:registers :PC])))]
+                (assoc-in state [:registers :PC] next-pc))))))
+
+(defn state-seq
+  [state]
+  (lazy-cat
+   [state]
+   (if-let [next (next-state state)]
+     (state-seq next)
+     [])))
+
+(defn run-states
+  ([hack-asm] (run-states hack-asm {}))
+  ([hack-asm init-mem]
+   (let [program (->> hack-asm
+                   asm/lines->instructions
+                   (mapv instruction->interpretable)
+                   remove-end-loop)
+         init-state (-> {:registers {:A 0, :D 0, :PC 0}
+                         :program program}
+                      (merge init-mem))]
+     (state-seq init-state))))

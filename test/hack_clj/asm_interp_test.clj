@@ -191,7 +191,7 @@
     parse/file->lines
     parse/strip-comments))
 
-(deftest acceptance
+(deftest acceptance-test
   (testing "sum 100"
     (is (= {:vars {"sum" 5050, "i" 101}
             :registers {:A 18, :D 1}
@@ -220,3 +220,18 @@
             [0 0 1] 1
             [32 1 12] 32))))))
 
+(deftest run-state-test
+  (testing "sum 100"
+    (let [i 16
+          sum 17
+          states (run-states sum-100)
+          final-state (last states)]
+      (testing "returns the right result"
+        (is (= 5050 (get final-state sum)))
+        (is (= 101 (get final-state i))))
+      (testing "contains the correct sequence of intermediate states"
+        (let [sum-reductions (reductions + (range 101))
+              sum-states (->> states
+                           (map #(get % sum 0))
+                           distinct)]
+          (is (= sum-reductions sum-states)))))))
