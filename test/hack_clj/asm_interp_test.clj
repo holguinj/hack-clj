@@ -220,7 +220,7 @@
             [0 0 1] 1
             [32 1 12] 32))))))
 
-(deftest run-state-test
+(deftest run-states-test
   (testing "sum 100"
     (let [i 16
           sum 17
@@ -233,5 +233,9 @@
         (let [sum-reductions (reductions + (range 101))
               sum-states (->> states
                            (map #(get % sum 0))
-                           distinct)]
-          (is (= sum-reductions sum-states)))))))
+                           distinct)
+              counter-states (->> states
+                               (map #(get % i 0))
+                               distinct)]
+          (is (= sum-reductions sum-states))
+          (is (= (range 102) counter-states)))))))
