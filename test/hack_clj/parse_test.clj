@@ -19,4 +19,4 @@
       (is (= "00000000000000x" res))))
   (testing "can be called with arity 2"
     (let [res (zfill "x" 5)]
-      (is (= "0000x")))))
+      (is (= "0000x" res)))))
