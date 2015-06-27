@@ -6,7 +6,8 @@
             [clojure.test :refer :all]
             [hack-clj.asm-interp :as interp]
             [hack-clj.test-utils :as tu]
-            [hack-clj.vm :refer :all])
+            [hack-clj.vm :refer :all]
+            [hack-clj.vm.analyzer :as analyzer])
   (:refer-clojure :exclude [pop]))
 
 (defn run-mem
@@ -448,13 +449,27 @@
                       run-stack)]
           (is (= [70 71 73 75 76] stack)))))))
 
-(defn run-book-acceptance
+(defn run-code-with-book-acceptance
   "Takes a vector of path elements relative to dev-resources/vm"
   [path-vec code]
   (let [path (str/join "/" path-vec)
         dir (str "dev-resources/vm/" path)
         test-name (last path-vec)
         base (str dir "/" test-name)
+        init-mem (tu/read-tst (str base ".tst"))
+        cmp-mem (tu/read-cmp (str base ".cmp"))
+        mem (run-mem code init-mem)]
+    (doseq [[loc val] cmp-mem]
+      (is (= val (get cmp-mem loc))))))
+
+(defn run-book-acceptance
+  "Takes a vector of path elements relative to dev-resources/vm"
+  [path-vec]
+  (let [path (str/join "/" path-vec)
+        dir (str "dev-resources/vm/" path)
+        test-name (last path-vec)
+        base (str dir "/" test-name)
+        code (emit-asm (analyzer/analyze-file (str base ".vm")))
         init-mem (tu/read-tst (str base ".tst"))
         cmp-mem (tu/read-cmp (str base ".cmp"))
         mem (run-mem code init-mem)]
@@ -489,4 +504,13 @@
                  (arithmetic "sub")
                  (push {:segment "temp", :offset 6})
                  (arithmetic "add")])]
-      (run-book-acceptance ["MemoryAccess" "BasicTest"] code))))
+      (run-code-with-book-acceptance ["MemoryAccess" "BasicTest"] code)))
+
+  (testing "MemoryAccess"
+    (run-book-acceptance ["MemoryAccess" "BasicTest"]))
+
+  (testing "SimpleAdd"
+    (run-book-acceptance ["StackArithmetic" "SimpleAdd"]))
+
+  (testing "StackTest"
+    (run-book-acceptance ["StackArithmetic" "StackTest"])))

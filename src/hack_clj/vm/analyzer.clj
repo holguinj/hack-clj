@@ -1,6 +1,7 @@
 (ns hack-clj.vm.analyzer
-  (:require [clojure.string :as str]
-            [hack-clj.parse]))
+  (:require [clojure.java.io :as io]
+            [clojure.string :as str]
+            [hack-clj.parse :as parse]))
 
 (defn split-on-space
   [s]
@@ -48,4 +49,14 @@
 
 (defn analyze*
   [lines]
-  (mapv analyze-line lines))
+  (->> lines
+       (filter parse/code?)
+       (mapv analyze-line)))
+
+(defn analyze-file
+  [path]
+  (-> path
+      io/file
+      io/reader
+      line-seq
+      analyze*))

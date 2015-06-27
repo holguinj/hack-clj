@@ -8,17 +8,22 @@
 
 (defn parse-cmp
   [cmp-lines]
-  {:pre [(= 2 (count cmp-lines))]}
-  (let [[head cmp] cmp-lines
-        locs (->> head
-               (re-seq #"RAM\[(\d+)[^\d]")
-               (map second)
-               (map #(Integer/parseInt %)))
-        vals (->> cmp
-               (re-seq #" (\d+) ")
-               (map second)
-               (map #(Integer/parseInt %)))]
-    (zipmap locs vals)))
+  {:pre [(zero? (mod (count cmp-lines) 2))]}
+  (loop [[head cmp & rest] cmp-lines
+         acc {}]
+    (let [locs (->> head
+                    (re-seq #"RAM\[(\d+)[^\d]")
+                    (map second)
+                    (map #(Integer/parseInt %)))
+          vals (->> cmp
+                    (re-seq #" (\d+) ")
+                    (map second)
+                    (map #(Integer/parseInt %)))
+          new-acc (merge acc (zipmap locs vals))]
+      (if (empty? rest)
+        new-acc
+        (recur rest
+               new-acc)))))
 
 (defn read-cmp
   [path]

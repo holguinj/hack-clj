@@ -59,3 +59,11 @@
       inc
       (* -1))
     (Integer/parseInt bs 2)))
+
+(defn maybe-parse-int
+  "Attempts to parse the given string as an integer. Returns nil if the operation fails."
+  [s]
+  (when (not-empty s)
+    (try (Integer/parseInt s)
+         (catch Exception _
+           nil))))

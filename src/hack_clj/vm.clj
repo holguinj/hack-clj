@@ -321,3 +321,17 @@
 
      :else
      (throw (IllegalArgumentException. (str "Can't push to the '" segment "' segment."))))))
+
+(defn emit-line
+  [[type data]]
+  (case type
+    :push (push data)
+    :pop (pop data)
+    :arithmetic (arithmetic data)
+
+    (throw (IllegalArgumentException. (str type " is not implemented.")))))
+
+(defn emit-asm
+  [instructions]
+  (flattenv
+   (mapv emit-line instructions)))
