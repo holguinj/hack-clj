@@ -507,10 +507,15 @@
       (run-code-with-book-acceptance ["MemoryAccess" "BasicTest"] code)))
 
   (testing "MemoryAccess"
-    (run-book-acceptance ["MemoryAccess" "BasicTest"]))
+    (testing "BasicTest"
+      (run-book-acceptance ["MemoryAccess" "BasicTest"]))
 
-  (testing "SimpleAdd"
-    (run-book-acceptance ["StackArithmetic" "SimpleAdd"]))
+    (testing "PointerTest"
+      (run-book-acceptance ["MemoryAccess" "PointerTest"])))
 
-  (testing "StackTest"
-    (run-book-acceptance ["StackArithmetic" "StackTest"])))
+  (testing "StackArithmetic"
+    (testing "SimpleAdd"
+      (run-book-acceptance ["StackArithmetic" "SimpleAdd"]))
+
+    (testing "StackTest"
+      (run-book-acceptance ["StackArithmetic" "StackTest"]))))
