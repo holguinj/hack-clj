@@ -31,8 +31,9 @@
 (defn strip-comments
   [lines]
   (->> lines
-    (filter code?)
-    (map str/trim)))
+       (map #(str/replace % #"//.*$" ""))
+       (filter code?)
+       (map str/trim)))
 
 (defn int->binstring
   "Returns a 15-bit twos complement binary string representation of the given int."

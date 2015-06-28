@@ -449,6 +449,56 @@
                       run-stack)]
           (is (= [70 71 73 75 76] stack)))))))
 
+(deftest program-flow-test
+  (testing "label"
+    (testing "emits an appropriate label"
+      (testing "when given a namespace"
+        (let [program (-> [(push-constant 220)
+                           (label {:ns "Test" :name "LOOP_START"})
+                           (push-constant 300)]
+                          wrap-init)]
+          (is (some #{"(Test.LOOP_START)"} program))
+          (is (= [220 300] (run-stack program)))))
+      (testing "when the namespace is omitted"
+        (let [program (-> [(push-constant 333)
+                           (label {:name "FruitLoops"})
+                           (push-constant 13)]
+                          wrap-init)]
+          (is (some #{"(Anonymous.FruitLoops)"} program))
+          (is (= [333 13] (run-stack program)))))))
+
+  (testing "goto"
+    (let [stack (-> [(push-constant 666)
+                     (goto {:ns "Test", :target "end"})
+                     (push-constant 420) ;; should be skipped
+                     (label {:ns "Test", :name "end"})]
+                    wrap-init
+                    run-stack)]
+      (is (= [666] stack))))
+
+  (testing "if-goto"
+    (testing "without a jump"
+      (let [stack (-> [(push-constant 123)
+                       (push-constant FALSE)
+                       (if-goto {:ns "Test", :target "end"})
+                       (push-constant 456)
+                       (label {:ns "Test", :name "end"})]
+                      wrap-init
+                      run-stack)]
+        (is (= [123 456] stack))))
+
+    (testing "with a jump"
+      (let [stack (-> [(push-constant 123)
+                       (push-constant TRUE)
+                       (if-goto {:ns "Test", :target "PushSixes"})
+                       (goto {:ns "Test", :target "end"})
+                       (label {:ns "Test", :name "PushSixes"})
+                       (push-constant 666)
+                       (label {:ns "Test", :name "end"})]
+                      wrap-init
+                      run-stack)]
+        (is (= [123 666] stack))))))
+
 (defn run-code-with-book-acceptance
   "Takes a vector of path elements relative to dev-resources/vm"
   [path-vec code]
@@ -518,4 +568,8 @@
       (run-book-acceptance ["StackArithmetic" "SimpleAdd"]))
 
     (testing "StackTest"
-      (run-book-acceptance ["StackArithmetic" "StackTest"]))))
+      (run-book-acceptance ["StackArithmetic" "StackTest"])))
+
+  (testing "ProgramFlow"
+    (testing "BasicLoop"
+      (run-book-acceptance ["ProgramFlow" "BasicLoop"]))))

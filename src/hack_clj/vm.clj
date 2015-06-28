@@ -99,7 +99,8 @@
     "D=M"
     dec-sp]))
 
-(defn label
+(defn label*
+  ;; TODO this function is kinda bogus now
   [s]
   {:pre [(or (string? s)
              (symbol? s))]}
@@ -125,11 +126,11 @@
         push-d
         (do-jump end)
 
-        (label ret-true)
+        (label* ret-true)
         (d-load TRUE)
         push-d
 
-        (label end)]))))
+        (label* end)]))))
 
 (def eq (comparison-fn "JEQ" "eq"))
 
@@ -322,12 +323,34 @@
      :else
      (throw (IllegalArgumentException. (str "Can't push to the '" segment "' segment."))))))
 
+(defn label
+  [{:keys [ns name]}]
+  (let [namespace (or ns "Anonymous")]
+    (label* (str namespace "." name))))
+
+(defn goto
+  [{:keys [ns target]}]
+  {:pre [(every? some? [ns target])]}
+  (do-jump (str ns "." target)))
+
+(defn if-goto
+  [{:keys [ns target]}]
+  {:pre [(some? target)]}
+  (let [qualified-target (str ns "." target)]
+    (flattenv
+     [pop-d
+      (a-load qualified-target)
+      "D;JNE"])))
+
 (defn emit-line
   [[type data]]
   (case type
     :push (push data)
     :pop (pop data)
     :arithmetic (arithmetic data)
+    :label (label data)
+    :if-goto (if-goto data)
+    :goto (goto data)
 
     (throw (IllegalArgumentException. (str type " is not implemented.")))))
 

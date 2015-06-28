@@ -44,19 +44,29 @@
       (contains? #{"push" "pop"} op)
       (analyze-push-pop op arg-1 arg-2)
 
+      (= "label" op)
+      [:label {:ns "Anonymous", :name arg-1}]
+
+      (= "if-goto" op)
+      [:if-goto {:ns "Anonymous", :target arg-1}]
+
+      (= "goto" op)
+      [:goto {:ns "Anonymous", :target arg-1}]
+
       :else
-      (throw (IllegalArgumentException. "Not yet implemented.")))))
+      (throw (IllegalArgumentException. (str op " is not yet implemented."))))))
 
 (defn analyze*
   [lines]
   (->> lines
-       (filter parse/code?)
        (mapv analyze-line)))
 
 (defn analyze-file
   [path]
-  (-> path
-      io/file
-      io/reader
-      line-seq
-      analyze*))
+  (->> path
+       io/file
+       io/reader
+       line-seq
+       parse/strip-comments
+       (filter parse/code?)
+       analyze*))
