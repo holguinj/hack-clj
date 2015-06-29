@@ -3,5 +3,6 @@
   :url "http://blog.postpunkjustin.com"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
+  :main hack-clj.core
   :dependencies [[org.clojure/clojure "1.6.0"]
                  [org.clojure/test.check "0.7.0"]])

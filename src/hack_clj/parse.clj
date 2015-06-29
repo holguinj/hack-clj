@@ -28,6 +28,12 @@
 (def file->lines
   (comp line-seq io/reader io/file)) 
 
+(defn lines->file
+  [out-path lines]
+  (->> lines
+       (str/join "\n")
+       (spit out-path)))
+
 (defn strip-comments
   [lines]
   (->> lines

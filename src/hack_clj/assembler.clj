@@ -2,7 +2,8 @@
   (:require [hack-clj.parse :refer [extract code? file->lines strip-comments zfill]
              :as parse]
             [clojure.string :as str]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io])
+  (:refer-clojure :exclude [compile]))
 
 (def get-dest (partial extract #"(\w+)="))
 (def get-jump (partial extract #";(\w+)"))
@@ -208,18 +209,8 @@
       (remove jump?)
       (map (partial replace-symbol table)))))
 
-(defn compile-file*
-  "Pure counterpart of compile-file"
+(defn compile
   [lines]
   (->> lines
     lines->instructions
     (map compile-instruction)))
-
-(defn compile-file
-  [file-in]
-  (let [lines (file->lines file-in)
-        out-name (str/replace file-in #"\.asm$" ".hack")]
-    (->> lines
-      compile-file*
-      (str/join "\n")
-      (spit out-name))))

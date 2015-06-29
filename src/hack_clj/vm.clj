@@ -355,6 +355,6 @@
     (throw (IllegalArgumentException. (str type " is not implemented.")))))
 
 (defn emit-asm
-  [instructions]
+  [name instructions]
   (flattenv
    (mapv emit-line instructions)))

@@ -56,17 +56,7 @@
       :else
       (throw (IllegalArgumentException. (str op " is not yet implemented."))))))
 
-(defn analyze*
+(defn analyze
   [lines]
   (->> lines
        (mapv analyze-line)))
-
-(defn analyze-file
-  [path]
-  (->> path
-       io/file
-       io/reader
-       line-seq
-       parse/strip-comments
-       (filter parse/code?)
-       analyze*))

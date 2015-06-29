@@ -6,6 +6,7 @@
             [clojure.test :refer :all]
             [hack-clj.asm-interp :as interp]
             [hack-clj.test-utils :as tu]
+            [hack-clj.parse :as parse]
             [hack-clj.vm :refer :all]
             [hack-clj.vm.analyzer :as analyzer])
   (:refer-clojure :exclude [pop]))
@@ -519,7 +520,10 @@
         dir (str "dev-resources/vm/" path)
         test-name (last path-vec)
         base (str dir "/" test-name)
-        code (emit-asm (analyzer/analyze-file (str base ".vm")))
+        in-vm (str base ".vm")
+        lines (-> in-vm parse/file->lines parse/strip-comments)
+        name (last path-vec)
+        code (emit-asm name (analyzer/analyze lines))
         init-mem (tu/read-tst (str base ".tst"))
         cmp-mem (tu/read-cmp (str base ".cmp"))
         mem (run-mem code init-mem)]

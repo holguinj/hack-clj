@@ -2,7 +2,8 @@
   (:require [clojure.test :refer :all]
             [hack-clj.assembler :refer :all]
             [hack-clj.parse :as parse]
-            [clojure.java.io :as io]))
+            [clojure.java.io :as io])
+  (:refer-clojure :exclude [compile]))
 
 (deftest parse-c-instruction-test
   (testing "book examples"
@@ -121,7 +122,7 @@
   [asm-in hack-in]
   (let [input-lines     (-> (str "dev-resources/assembler/" asm-in)  parse/file->lines)
         reference-lines (-> (str "dev-resources/assembler/" hack-in) parse/file->lines)
-        output-lines    (compile-file* input-lines)]
+        output-lines    (compile input-lines)]
     (testing asm-in
       (testing "compiles with the right number of output lines"
         (is (= (count output-lines)
